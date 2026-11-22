@@ -1,0 +1,20 @@
+# ROS 2 build output
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Raw datasets (download with the scripts in data/)
+data/*
+!data/README.md
+
+# Large run artefacts (summaries and plots are committed; bags and full videos go to Releases)
+results/**/bags/
+results/**/*.mcap
+results/**/*.db3
+results/**/*.mp4
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
