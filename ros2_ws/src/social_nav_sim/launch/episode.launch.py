@@ -9,7 +9,8 @@ mode:=none|cv|lstm|social picks the set-up: plain Nav2, Nav2 with the prediction
 costmap layer fed by constant-velocity or LSTM forecasts, or "social": LSTM
 forecasts plus the yielding speed governor and speed/acceleration limits fitted
 to the human driver. none/cv/lstm share the same Nav2 parameters apart from the
-prediction layer being enabled.
+prediction layer being enabled. "learned" uses the prediction parameters plus the
+learned driver (a policy cloned from the THÖR-MAGNI human driver) setting the speed.
 """
 import os
 import tempfile
@@ -84,16 +85,17 @@ def generate_launch_description():
     mode = LaunchConfiguration('mode')
     body = LaunchConfiguration('body')
     params = PythonExpression(["'", os.path.join(pkg, 'config', ''), "' + {'none': 'nav2_params_baseline', "
-                               "'social': 'nav2_params_social'}.get('", mode, "', 'nav2_params_prediction')"
+                               "'blind': 'nav2_params_blind', 'social': 'nav2_params_social'}.get('", mode, "', 'nav2_params_prediction')"
                                " + ('_darko' if '", body, "' == 'darko' else '') + '.yaml'"])
     robot_sdf = PythonExpression(["'", marked_robot_sdf(tb3, 'darko'), "' if '", body, "' == 'darko' else '",
                                   marked_robot_sdf(tb3, 'tb3'), "'"])
-    predictor_mode = PythonExpression(["'lstm' if '", mode, "' == 'social' else '", mode, "'"])
+    predictor_mode = PythonExpression(["'lstm' if '", mode, "' in ('social', 'learned') else '", mode, "'"])
 
     args = [
         DeclareLaunchArgument('scene', default_value='thor_sc3'),
         DeclareLaunchArgument('out_dir', default_value='/ws/results/latest'),
-        DeclareLaunchArgument('mode', default_value='none', description='none | cv | lstm | social'),
+        DeclareLaunchArgument('mode', default_value='none', description='none | blind | cv | lstm | social | learned'),
+        DeclareLaunchArgument('driver_weights', default_value=os.path.join(pkg, 'models', 'weights_BC_social.mat')),
         DeclareLaunchArgument('body', default_value='tb3', description='tb3 | darko (dataset robot size)'),
         DeclareLaunchArgument('reaction', default_value='',
                               description='reaction model json: people react to the robot (simple-body scenes)'),
@@ -139,7 +141,7 @@ def generate_launch_description():
                                'reaction_model': LaunchConfiguration('reaction')}])
 
     predictor = Node(package='social_nav_sim', executable='predictor', condition=UnlessCondition(
-                         PythonExpression(["'", mode, "' == 'none'"])),
+                         PythonExpression(["'", mode, "' in ('none', 'blind')"])),
                      parameters=[{'use_sim_time': True, 'mode': predictor_mode,
                                   'weights': LaunchConfiguration('weights')}])
 
@@ -147,6 +149,10 @@ def generate_launch_description():
                         PythonExpression(["'", mode, "' == 'social'"])),
                     parameters=[PathJoinSubstitution([pkg, 'config', ['governor_', LaunchConfiguration('governor'), '.yaml']]),
                                 {'use_sim_time': True}])
+
+    driver = Node(package='social_nav_sim', executable='learned_driver', condition=IfCondition(
+                      PythonExpression(["'", mode, "' == 'learned'"])),
+                  parameters=[{'use_sim_time': True, 'weights': LaunchConfiguration('driver_weights')}])
 
     recorder = Node(package='social_nav_sim', executable='video_recorder',
                     parameters=[{'use_sim_time': True, 'output': PathJoinSubstitution([out_dir, 'run.mp4'])}])
@@ -165,7 +171,7 @@ def generate_launch_description():
         target_action=episode, on_exit=[EmitEvent(event=Shutdown(reason='episode finished'))]))
 
     return LaunchDescription(args + [
-        gazebo, robot, state_pub, cam_bridge, people, predictor, governor,
+        gazebo, robot, state_pub, cam_bridge, people, predictor, governor, driver,
         TimerAction(period=3.0, actions=[nav2]),
         TimerAction(period=5.0, actions=[recorder, bag, episode]),
         stop_when_done,

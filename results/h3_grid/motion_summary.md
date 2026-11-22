@@ -8,6 +8,16 @@
 | Social (LSTM + yielding + human-fitted limits) |     30 |        0.294 |      0.776 |                  0.864 |                 6.739 |               8.083 |                      -0.024 |                     0.885 |
 | Human driver                                   |     10 |        0.238 |      1.229 |                  1.095 |                 3.151 |               1.974 |                      -0.025 |                     0     |
 
+Burden on people (reactive crowds only): person-seconds pushed > 0.2 m off their path, displacement integral (m*s), mean peak displacement (m):
+
+| setup                                          |   people_displaced_s |   people_displacement_ms |   mean_peak_displacement_m |
+|:-----------------------------------------------|---------------------:|-------------------------:|---------------------------:|
+| Nav2                                           |                  nan |                      nan |                        nan |
+| Nav2 + CV prediction                           |                  nan |                      nan |                        nan |
+| Nav2 + LSTM prediction                         |                  nan |                      nan |                        nan |
+| Social (LSTM + yielding + human-fitted limits) |                  nan |                      nan |                        nan |
+| Human driver                                   |                  nan |                      nan |                        nan |
+
 Human-likeness distance per feature (Wasserstein / human IQR; lower is more human-like):
 
 | setup                                          |   W_speed |   W_accel |   W_jerk |   W_turn_rate |   W_robot_approach_close |   W_pass_clearance |

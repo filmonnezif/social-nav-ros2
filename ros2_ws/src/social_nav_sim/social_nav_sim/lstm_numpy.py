@@ -41,6 +41,11 @@ class LSTMPredictor:
 
     def predict(self, x):
         """x: [T x F] or [N x T x F] -> [N x 12 x 2]."""
+        y = self.forward(x)
+        return np.stack([y[:, :12], y[:, 12:]], axis=-1)
+
+    def forward(self, x):
+        """x: [T x F] or [N x T x F] -> raw network output [N x outputs]."""
         if x.ndim == 2:
             x = x[None]
         x = (x - self.mean) / np.where(self.std > 0, self.std, 1.0)
@@ -52,8 +57,7 @@ class LSTMPredictor:
                           np.tanh(z[:, 2 * H:3 * H]), sigmoid(z[:, 3 * H:]))
             c = f * c + i * g
             h = o * np.tanh(c)
-        y = np.maximum(h @ self.fc1_W.T + self.fc1_b, 0) @ self.fc2_W.T + self.fc2_b
-        return np.stack([y[:, :12], y[:, 12:]], axis=-1)
+        return np.maximum(h @ self.fc1_W.T + self.fc1_b, 0) @ self.fc2_W.T + self.fc2_b
 
 
 def main():

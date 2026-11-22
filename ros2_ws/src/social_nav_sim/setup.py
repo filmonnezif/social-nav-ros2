@@ -30,6 +30,7 @@ setup(
             'run_episode = social_nav_sim.run_episode:main',
             'predictor = social_nav_sim.predictor_node:main',
             'yield_governor = social_nav_sim.yield_governor:main',
+            'learned_driver = social_nav_sim.learned_driver:main',
         ],
     },
 )

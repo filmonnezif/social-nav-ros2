@@ -9,6 +9,7 @@ most 20% time to goal, and adds no failures. Differences are paired per
 scene and direction; 95% intervals come from a bootstrap over those pairs.
 """
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -17,9 +18,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[1] / 'results/h3_grid'
-MODES = ['none', 'cv', 'lstm', 'social']
-LABEL = {'none': 'Nav2', 'cv': 'Nav2 + CV prediction', 'lstm': 'Nav2 + LSTM prediction', 'social': 'Social (LSTM + yielding + human-fitted limits)'}
+ROOT = Path(__file__).resolve().parents[1] / (sys.argv[1] if len(sys.argv) > 1 else 'results/h3_grid')
+MODES = ['none', 'blind', 'cv', 'lstm', 'social', 'learned']
+LABEL = {'none': 'Nav2', 'cv': 'Nav2 + CV prediction', 'lstm': 'Nav2 + LSTM prediction', 'social': 'Social (LSTM + yielding + human-fitted limits)', 'blind': 'Nav2 blind to people (bulldozer)', 'learned': 'Learned driver (LSTM + cloned human speed)'}
 
 
 def load():
@@ -101,13 +102,14 @@ def main():
     print('\n'.join(lines))
 
     fig, axes = plt.subplots(1, 4, figsize=(14, 3.6))
-    colors = ['#8a8f98', '#4c8bd6', '#e07b28', '#7b4fc9'][:len(modes)]
+    palette = {'none': '#8a8f98', 'blind': '#3d3d3d', 'cv': '#4c8bd6', 'lstm': '#e07b28', 'social': '#7b4fc9', 'learned': '#2a9d5c'}
+    colors = [palette[m] for m in modes]
     for ax, (col, title) in zip(axes, [('success_%', 'Reached goal (%)'),
                                        ('time_within_0.5m_s (mean)', 'Time within 0.5 m (s)'),
                                        ('time_within_1m_s (mean)', 'Time within 1 m (s)'),
                                        ('time_to_goal_s (successful)', 'Time to goal (s)')]):
         ax.bar(range(len(modes)), table[col], color=colors)
-        ax.set_xticks(range(len(modes)), [{'none': 'Nav2', 'cv': '+CV', 'lstm': '+LSTM', 'social': 'Social'}[m] for m in modes])
+        ax.set_xticks(range(len(modes)), [{'none': 'Nav2', 'blind': 'Blind', 'cv': '+CV', 'lstm': '+LSTM', 'social': 'Social', 'learned': 'Learned'}[m] for m in modes])
         ax.set_title(title)
         ax.spines[['top', 'right']].set_visible(False)
     fig.suptitle(f'H3: {n} paired runs per set-up on the held-out test day')

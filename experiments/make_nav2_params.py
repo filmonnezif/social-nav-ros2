@@ -48,6 +48,13 @@ def main():
             params.pop('robot_radius', None)
             params['footprint'] = DARKO_FOOTPRINT
         write(out / name.replace('.yaml', '_darko.yaml'), p)
+        if name == 'nav2_params_baseline.yaml':
+            # "bulldozer" control: Nav2 blind to people (no obstacle/voxel layers, static map only);
+            # the collision monitor still stops it right before contact
+            for cm, layer in (('local_costmap', 'voxel_layer'), ('global_costmap', 'obstacle_layer')):
+                params = p[cm][cm]['ros__parameters']
+                params['plugins'] = [x for x in params['plugins'] if x != layer]
+            write(out / 'nav2_params_blind_darko.yaml', p)
 
 
 def write(path, p):

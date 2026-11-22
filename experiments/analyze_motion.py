@@ -24,13 +24,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 from motion_metrics import wasserstein_norm  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
-MODES = ['none', 'cv', 'lstm', 'social']
-LABEL = {'none': 'Nav2', 'cv': 'Nav2 + CV prediction', 'lstm': 'Nav2 + LSTM prediction', 'social': 'Social (LSTM + yielding + human-fitted limits)', 'human': 'Human driver'}
+MODES = ['none', 'blind', 'cv', 'lstm', 'social', 'learned']
+LABEL = {'none': 'Nav2', 'cv': 'Nav2 + CV prediction', 'lstm': 'Nav2 + LSTM prediction', 'social': 'Social (LSTM + yielding + human-fitted limits)', 'blind': 'Nav2 blind to people (bulldozer)', 'learned': 'Learned driver (LSTM + cloned human speed)', 'human': 'Human driver'}
 FEATURES = {'speed': 'Speed (m/s)', 'accel': '|Acceleration| (m/s²)', 'jerk': '|Jerk| (m/s³)',
             'turn_rate': 'Turn rate (rad/s)', 'robot_approach_close': 'Robot speed towards nearest person, < 1.5 m (m/s)',
             'pass_clearance': 'Clearance when passing (m)'}
 SCALARS = ['mean_speed', 'rms_jerk', 'heading_change_per_m', 'stop_starts_per_min',
-           'time_ttc_under_2s', 'mean_robot_approach_close', 'min_distance']
+           'time_ttc_under_2s', 'mean_robot_approach_close', 'min_distance',
+           'people_displaced_s', 'people_displacement_ms', 'mean_peak_displacement_m']
 
 
 def boot_ci(x, n=5000):
@@ -60,24 +61,32 @@ def main():
     for mode in modes:
         sub = df[df['mode'] == mode]
         hl = {k: wasserstein_norm(samples[mode].get(k, []), human[k]) for k in FEATURES}
-        table.append({'setup': LABEL[mode], 'runs': len(sub), **{k: sub[k].mean() for k in SCALARS},
+        table.append({'setup': LABEL[mode], 'runs': len(sub), **{k: sub[k].mean() if k in sub else np.nan for k in SCALARS},
                       'human_likeness_distance': np.nanmean(list(hl.values())),
                       **{f'W_{k}': v for k, v in hl.items()}})
     table.append({'setup': LABEL['human'], 'runs': len(hscal),
-                  **{k: float((hscal[k] * w).sum()) for k in SCALARS}, 'human_likeness_distance': 0.0})
+                  **{k: float((hscal[k] * w).sum()) if k in hscal else np.nan for k in SCALARS},
+                  'human_likeness_distance': 0.0})
     T = pd.DataFrame(table)
     T.to_csv(grid / 'motion_summary.csv', index=False)
 
-    piv = df.pivot_table(index=['scene', 'dir'], columns='mode', values=SCALARS + ['duration_s']).dropna()
+    have = [k for k in SCALARS + ['duration_s'] if k in df]
+    piv = df.pivot_table(index=['scene', 'dir'], columns='mode', values=have).dropna()
     lines = ['# Smoothness, comfort and human-likeness', '',
              T[['setup', 'runs', 'mean_speed', 'rms_jerk', 'heading_change_per_m', 'stop_starts_per_min',
                 'time_ttc_under_2s', 'mean_robot_approach_close', 'human_likeness_distance']].round(3).to_markdown(index=False),
+             '', 'Burden on people (reactive crowds only): person-seconds pushed > 0.2 m off their path, '
+             'displacement integral (m*s), mean peak displacement (m):', '',
+             T[['setup', 'people_displaced_s', 'people_displacement_ms', 'mean_peak_displacement_m']].round(2).to_markdown(index=False),
              '', 'Human-likeness distance per feature (Wasserstein / human IQR; lower is more human-like):', '',
              T[['setup'] + [f'W_{k}' for k in FEATURES]].iloc[:len(modes)].round(2).to_markdown(index=False), '']
     for mode in modes[1:]:
+        if mode == 'none' or ('rms_jerk', mode) not in piv:
+            continue
         lines.append(f'## {LABEL[mode]} vs Nav2 (paired over {len(piv)} scene/direction pairs)')
         lines.append('')
-        for k in ['rms_jerk', 'heading_change_per_m', 'stop_starts_per_min', 'time_ttc_under_2s']:
+        for k in [k for k in ['rms_jerk', 'heading_change_per_m', 'stop_starts_per_min', 'time_ttc_under_2s',
+                              'people_displaced_s', 'people_displacement_ms'] if (k, mode) in piv]:
             d = piv[(k, mode)] - piv[(k, 'none')]
             lo, hi = boot_ci(d)
             rel = d.mean() / piv[(k, 'none')].mean()
@@ -87,7 +96,8 @@ def main():
     print('\n'.join(lines))
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 7.5))
-    colors = {'none': '#8a8f98', 'cv': '#4c8bd6', 'lstm': '#e07b28', 'social': '#7b4fc9', 'human': '#2a9d5c'}
+    colors = {'none': '#8a8f98', 'blind': '#3d3d3d', 'cv': '#4c8bd6', 'lstm': '#e07b28', 'social': '#7b4fc9',
+              'learned': '#c2185b', 'human': '#2a9d5c'}
     for ax, (k, title) in zip(axes.ravel(), FEATURES.items()):
         hi = np.nanpercentile(np.concatenate([human[k]] + [samples[m].get(k, np.array([0.0])) for m in modes]), 98)
         lo = min(0.0, np.nanpercentile(np.concatenate([human[k]] + [samples[m].get(k, np.array([0.0])) for m in modes]), 2))

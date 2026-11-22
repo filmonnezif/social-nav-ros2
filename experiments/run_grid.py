@@ -79,13 +79,15 @@ def main():
     ap.add_argument('--reactive', action='store_true',
                     help='people react to the robot (data-calibrated model; uses simple-body scenes)')
     ap.add_argument('--out', default='results/h3_grid')
+    ap.add_argument('--reaction', default='/ws/results/reaction/reaction_calibration.json',
+                    help='reaction model used with --reactive (container path)')
     args = ap.parse_args()
 
     scenes = build_scenes(args.tracks, args.maps, 'bodies' if args.reactive else 'actors')
     out_root = REPO / args.out
     extra = [f'body:={args.body}']
     if args.reactive:
-        extra.append('reaction:=/ws/results/reaction/reaction_calibration.json')
+        extra.append(f'reaction:={args.reaction}')
     out_root.mkdir(parents=True, exist_ok=True)
     jobs = [(s, d, m) for s in scenes for d in DIRECTIONS for m in args.modes.split(',')]
     log = open(out_root / 'progress.log', 'a')
