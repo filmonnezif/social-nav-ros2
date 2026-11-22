@@ -26,9 +26,8 @@ DATA   = "thor_magni_sc3_snippets.mat";
 OUT    = "results_predictor";
 
 if QUICK, SEEDS = 1; EPOCHS = 1; end
-if ~isfile(DATA), error("Put %s next to this script (MATLAB Drive).", DATA); end
 if ~isfolder(OUT), mkdir(OUT); end
-D = load(DATA);
+D = loadData(DATA);
 fprintf("train %d, val %d, test %d snippets\n", size(D.train_fut,1), size(D.val_fut,1), size(D.test_fut,1));
 if QUICK
     D = subsetSplit(D, "train", 2000); D = subsetSplit(D, "val", 500); D = subsetSplit(D, "test", 1000);
@@ -148,6 +147,24 @@ end
 fprintf("Done. Results in %s/\n", OUT);
 
 %% ---------------------------------------------------------------- helpers
+function D = loadData(file)
+    % one .mat, or the same data split into thor_magni_sc3_meta.mat + _partNN.mat
+    % (small enough to upload through a browser)
+    if isfile(file), D = load(file); return; end
+    parts = dir("thor_magni_sc3_part*.mat");
+    if isempty(parts) || ~isfile("thor_magni_sc3_meta.mat")
+        error("Put %s (or the thor_magni_sc3_meta/_part files) next to this script.", file);
+    end
+    D = load("thor_magni_sc3_meta.mat");
+    for p = sort(string({parts.name}))
+        S = load(p);
+        for f = string(fieldnames(S))'
+            if isfield(D, f), D.(f) = cat(1, D.(f), S.(f)(:,:,:,:)); else, D.(f) = S.(f); end
+        end
+    end
+    for s = ["train","val","test"], D.(s + "_near") = D.(s + "_near")(:); end
+end
+
 function X = features(D, split, variant)
     ego = D.(split + "_ego");                       % N x 8 x 4
     F = ego;
