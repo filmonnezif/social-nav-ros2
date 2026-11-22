@@ -1,0 +1,4 @@
+16 scenes, 96 runs
+16:41:31 t170522_sc3a_r1_010_LR_none 224s {"goals_reached": 0, "goals_total": 1, "time_to_goals_s": [103.43], "path_length_m": 28.53, "min_distance_to_person_m": 0.09, "time_within_personal_space_s": 2.34, "time_within_1m_s": 12.17, "personal_space_threshold_m": 0.5}
+16:43:39 t170522_sc3a_r1_010_LR_cv 128s {"goals_reached": 1, "goals_total": 1, "time_to_goals_s": [44.76], "path_length_m": 16.38, "min_distance_to_person_m": 0.063, "time_within_personal_space_s": 1.33, "time_within_1m_s": 4.07, "personal_space_threshold_m": 0.5}
+16:46:01 t170522_sc3a_r1_010_LR_lstm 142s {"goals_reached": 1, "goals_total": 1, "time_to_goals_s": [47.03], "path_length_m": 16.05, "min_distance_to_person_m": 0.091, "time_within_personal_space_s": 1.15, "time_within_1m_s": 5.54, "personal_space_threshold_m": 0.5}

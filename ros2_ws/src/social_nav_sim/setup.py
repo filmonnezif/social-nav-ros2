@@ -15,6 +15,7 @@ setup(
         ('share/' + package_name + '/worlds', glob('worlds/*.sdf')),
         ('share/' + package_name + '/maps', glob('maps/*')),
         ('share/' + package_name + '/config', glob('config/*')),
+        ('share/' + package_name + '/models', glob('models/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +28,7 @@ setup(
             'people_publisher = social_nav_sim.people_publisher:main',
             'video_recorder = social_nav_sim.video_recorder:main',
             'run_episode = social_nav_sim.run_episode:main',
+            'predictor = social_nav_sim.predictor_node:main',
         ],
     },
 )

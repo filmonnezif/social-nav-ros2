@@ -27,14 +27,13 @@ def sim_time(nav):
 def main():
     rclpy.init()
     nav = BasicNavigator()
-    nav.declare_parameter('start', [-7.0, -1.0, 0.0])
-    nav.declare_parameter('goals', [7.5, 1.0, 0.0, -7.0, -1.0, 3.14159])
+    nav.declare_parameter('start', '-7.0,-1.0,0.0')
+    nav.declare_parameter('goals', '7.5,1.0,0.0;-7.0,-1.0,3.14159')
     nav.declare_parameter('start_time', 15.0)
     nav.declare_parameter('goal_timeout', 120.0)
     nav.declare_parameter('summary', '/ws/results/episode.json')
-    start = nav.get_parameter('start').value
-    flat = nav.get_parameter('goals').value
-    goals = [flat[i:i + 3] for i in range(0, len(flat), 3)]
+    start = [float(v) for v in nav.get_parameter('start').value.split(',')]
+    goals = [[float(v) for v in g.split(',')] for g in nav.get_parameter('goals').value.split(';') if g]
 
     nav.setInitialPose(pose(nav, *start))
     nav.waitUntilNav2Active()

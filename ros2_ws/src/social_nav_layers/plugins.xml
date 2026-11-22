@@ -1,0 +1,5 @@
+<library path="social_nav_layers">
+  <class type="social_nav_layers::PredictionLayer" base_class_type="nav2_costmap_2d::Layer">
+    <description>Paints predicted pedestrian positions into the costmap.</description>
+  </class>
+</library>

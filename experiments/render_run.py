@@ -4,7 +4,9 @@ Reads the rosbag of a run, draws a top-down view (map, people with trails, robot
 path, Nav2 global plan, distance to the closest person) for every frame of the
 Gazebo scene video, stacks both views into demo.mp4, and writes metrics.json.
 
-Runs inside the experiment container:  python3 experiments/render_run.py results/<run>
+Runs inside the experiment container:
+  python3 experiments/render_run.py results/<run> [scene] [--no-video]
+--no-video writes metrics.json only (fast; used by the experiment grid).
 """
 import json
 import math
@@ -38,10 +40,10 @@ def read_bag(bag_dir):
     reader = SequentialReader()
     reader.open(StorageOptions(uri=str(bag_dir), storage_id='mcap'), ConverterOptions('', ''))
     types = {t.name: t.type for t in reader.get_all_topics_and_types()}
-    odom, map_odom, plans, people = [], [], [], []
+    odom, map_odom, plans, people, preds = [], [], [], [], []
     while reader.has_next():
         topic, data, _ = reader.read_next()
-        if topic not in ('/odom', '/tf', '/plan', '/people/poses'):
+        if topic not in ('/odom', '/tf', '/plan', '/people/poses', '/predicted_people'):
             continue
         msg = deserialize_message(data, get_message(types[topic]))
         if topic == '/odom':
@@ -54,9 +56,11 @@ def read_bag(bag_dir):
                     map_odom.append((stamp(tf.header), tr.translation.x, tr.translation.y, yaw_of(tr.rotation)))
         elif topic == '/plan':
             plans.append((stamp(msg.header), np.array([[q.pose.position.x, q.pose.position.y] for q in msg.poses])))
+        elif topic == '/predicted_people':
+            preds.append((stamp(msg.header), np.array([[q.position.x, q.position.y] for q in msg.poses])))
         else:
             people.append((stamp(msg.header), np.array([[q.position.x, q.position.y] for q in msg.poses])))
-    return np.array(odom), np.array(map_odom), plans, people
+    return np.array(odom), np.array(map_odom), plans, people, preds
 
 
 def stamp(h):
@@ -83,9 +87,10 @@ def latest(seq, t):
 
 
 def main():
-    run = Path(sys.argv[1]).resolve()
-    scene = sys.argv[2] if len(sys.argv) > 2 else 'thor_sc3'
-    odom, map_odom, plans, people_msgs = read_bag(run / 'bag')
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    run = Path(args[0]).resolve()
+    scene = args[1] if len(args) > 1 else 'thor_sc3'
+    odom, map_odom, plans, people_msgs, preds = read_bag(run / 'bag')
     robot = robot_in_map(odom, map_odom)
     frames = np.loadtxt(run / 'run.mp4.frames.csv', delimiter=',', skiprows=1)[:, 1]
 
@@ -120,6 +125,8 @@ def main():
     }
     (run / 'metrics.json').write_text(json.dumps(metrics, indent=2))
     print(json.dumps(metrics, indent=2))
+    if '--no-video' in sys.argv:
+        return
 
     # top-down video, one frame per scene-camera frame
     meta = yaml.safe_load((PKG / 'maps' / f'{scene}.yaml').read_text())
@@ -143,6 +150,9 @@ def main():
                 continue
             ax.plot(g.x.values[m], g.y.values[m], '-', color=HUES[k % 9], lw=1.5, alpha=0.6)
             ax.add_patch(plt.Circle((g.x.values[m][-1], g.y.values[m][-1]), 0.22, color=HUES[k % 9]))
+        pr = latest(preds, t)
+        if pr is not None and len(pr):
+            ax.plot(pr[:, 0], pr[:, 1], '.', color=(0.2, 0.45, 0.9), ms=3, alpha=0.5, label='predicted paths')
         plan = latest(plans, t)
         if plan is not None and len(plan):
             ax.plot(plan[:, 0], plan[:, 1], '--', color=(0.2, 0.45, 0.9), lw=1.2, label='Nav2 global plan')

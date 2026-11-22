@@ -41,7 +41,6 @@ class LSTMPredictor:
 
     def predict(self, x):
         """x: [T x F] or [N x T x F] -> [N x 12 x 2]."""
-        x = np.atleast_3d(x) if x.ndim == 2 else x
         if x.ndim == 2:
             x = x[None]
         x = (x - self.mean) / np.where(self.std > 0, self.std, 1.0)
