@@ -18,6 +18,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 import yaml  # noqa: E402
 from PIL import Image  # noqa: E402
 from rclpy.serialization import deserialize_message  # noqa: E402
@@ -41,9 +42,10 @@ def read_bag(bag_dir):
     reader.open(StorageOptions(uri=str(bag_dir), storage_id='mcap'), ConverterOptions('', ''))
     types = {t.name: t.type for t in reader.get_all_topics_and_types()}
     odom, map_odom, plans, people, preds = [], [], [], [], []
+    tracked = {}                                     # marker id -> [(t, x, y)]
     while reader.has_next():
         topic, data, _ = reader.read_next()
-        if topic not in ('/odom', '/tf', '/plan', '/people/poses', '/predicted_people'):
+        if topic not in ('/odom', '/tf', '/plan', '/people/poses', '/predicted_people', '/people/markers'):
             continue
         msg = deserialize_message(data, get_message(types[topic]))
         if topic == '/odom':
@@ -56,11 +58,25 @@ def read_bag(bag_dir):
                     map_odom.append((stamp(tf.header), tr.translation.x, tr.translation.y, yaw_of(tr.rotation)))
         elif topic == '/plan':
             plans.append((stamp(msg.header), np.array([[q.pose.position.x, q.pose.position.y] for q in msg.poses])))
+        elif topic == '/people/markers':
+            for mk in msg.markers:
+                if mk.action == mk.ADD:
+                    tracked.setdefault(mk.id, []).append((stamp(mk.header), mk.pose.position.x, mk.pose.position.y))
         elif topic == '/predicted_people':
             preds.append((stamp(msg.header), np.array([[q.position.x, q.position.y] for q in msg.poses])))
         else:
             people.append((stamp(msg.header), np.array([[q.position.x, q.position.y] for q in msg.poses])))
-    return np.array(odom), np.array(map_odom), plans, people, preds
+    return np.array(odom), np.array(map_odom), plans, people, preds, tracked
+
+
+def people_tracks(run, scene, tracked):
+    """Per-person tracks as DataFrames: from the bag when recorded (covers reactive people,
+    whose positions differ from the file), else from the scene's people file."""
+    if tracked:
+        return {f'p{i:02d}': pd.DataFrame(v, columns=['t', 'x', 'y']).drop_duplicates('t').sort_values('t')
+                for i, v in sorted(tracked.items())}
+    tracks = pd.read_csv(PKG / 'config' / f'{scene}_people.csv')
+    return {b: g.sort_values('t') for b, g in tracks.groupby('body')}
 
 
 def stamp(h):
@@ -90,14 +106,12 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     run = Path(args[0]).resolve()
     scene = args[1] if len(args) > 1 else 'thor_sc3'
-    odom, map_odom, plans, people_msgs, preds = read_bag(run / 'bag')
+    odom, map_odom, plans, people_msgs, preds, tracked = read_bag(run / 'bag')
     robot = robot_in_map(odom, map_odom)
     frames = np.loadtxt(run / 'run.mp4.frames.csv', delimiter=',', skiprows=1)[:, 1]
 
-    import pandas as pd
-    tracks = pd.read_csv(PKG / 'config' / f'{scene}_people.csv')
-    bodies = sorted(tracks.body.unique())
-    tracks_by_body = {b: g.sort_values('t') for b, g in tracks.groupby('body')}
+    tracks_by_body = people_tracks(run, scene, tracked)
+    bodies = sorted(tracks_by_body)
 
     # metrics from ground-truth people positions at robot odometry rate. For the
     # closest person we also split who is closing the gap: the robot's speed

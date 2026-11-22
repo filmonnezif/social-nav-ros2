@@ -34,15 +34,16 @@ DIRECTIONS = {
 MODES = ['none', 'cv', 'lstm']
 
 
-def build_scenes(tracks, maps):
+def build_scenes(tracks, maps, people='actors'):
     scenes = []
     for run in RUNS:
         for t0 in T0S:
-            name = f't{run.lower()}_{t0:03d}'
+            name = f't{run.lower()}_{t0:03d}' + ('_b' if people == 'bodies' else '')
             if not (REPO / 'ros2_ws/src/social_nav_sim/worlds' / f'{name}.sdf').exists():
                 r = subprocess.run([sys.executable, str(REPO / 'experiments/build_scene.py'),
                                     str(tracks / f'{run}.csv'), str(maps / '1705_SC3_map.png'),
-                                    '--name', name, '--t0', str(t0), '--duration', str(DURATION)],
+                                    '--name', name, '--t0', str(t0), '--duration', str(DURATION),
+                                    '--people', people],
                                    capture_output=True, text=True)
                 if r.returncode:
                     print('skip', name, r.stderr.strip().splitlines()[-1:])
@@ -74,10 +75,17 @@ def main():
     ap.add_argument('--maps', type=Path, required=True)
     ap.add_argument('--limit', type=int, default=0, help='run at most this many episodes')
     ap.add_argument('--modes', default=','.join(MODES), help='comma-separated set-ups to run')
+    ap.add_argument('--body', default='tb3', help='tb3 | darko')
+    ap.add_argument('--reactive', action='store_true',
+                    help='people react to the robot (data-calibrated model; uses simple-body scenes)')
+    ap.add_argument('--out', default='results/h3_grid')
     args = ap.parse_args()
 
-    scenes = build_scenes(args.tracks, args.maps)
-    out_root = REPO / 'results/h3_grid'
+    scenes = build_scenes(args.tracks, args.maps, 'bodies' if args.reactive else 'actors')
+    out_root = REPO / args.out
+    extra = [f'body:={args.body}']
+    if args.reactive:
+        extra.append('reaction:=/ws/results/reaction/reaction_calibration.json')
     out_root.mkdir(parents=True, exist_ok=True)
     jobs = [(s, d, m) for s in scenes for d in DIRECTIONS for m in args.modes.split(',')]
     log = open(out_root / 'progress.log', 'a')
@@ -92,10 +100,10 @@ def main():
         if args.limit and done >= args.limit:
             break
         x, y, yaw, goal = DIRECTIONS[d]
-        env = dict(os.environ, OUT_ROOT='results/h3_grid', RENDER='0', SKIP_BUILD='1' if built else '0')
+        env = dict(os.environ, OUT_ROOT=args.out, RENDER='0', SKIP_BUILD='1' if built else '0')
         t = time.time()
         subprocess.run([str(REPO / 'experiments/run_episode.sh'), run, f'scene:={scene}', f'mode:={mode}',
-                        f'x:={x}', f'y:={y}', f'yaw:={yaw}', f'goals:={goal}'], env=env)
+                        f'x:={x}', f'y:={y}', f'yaw:={yaw}', f'goals:={goal}', *extra], env=env)
         built = True
         done += 1
         m = out_root / run / 'metrics.json'

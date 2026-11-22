@@ -40,13 +40,30 @@ ROBOT_MARKERS = """
 """
 
 
-def marked_robot_sdf(tb3_share):
+# Visual-only body matching the dataset robot (DARKO), measured from its motion-capture
+# markers: about 0.90 x 0.75 m and 0.7 m tall. A low skirt and an upper body leave a
+# gap at the lidar's height so the TurtleBot's scanner still sees out.
+DARKO_BODY = """
+        <visual name="darko_skirt"><pose>-0.064 0 0.05 0 0 0</pose>
+          <geometry><box><size>0.90 0.75 0.10</size></box></geometry>
+          <material><ambient>0.25 0.3 0.4 1</ambient><diffuse>0.25 0.3 0.4 1</diffuse></material></visual>
+        <visual name="darko_body"><pose>-0.064 0 0.52 0 0 0</pose>
+          <geometry><box><size>0.90 0.75 0.36</size></box></geometry>
+          <material><ambient>0.3 0.36 0.48 1</ambient><diffuse>0.3 0.36 0.48 1</diffuse></material></visual>
+        <visual name="video_beacon"><pose>-0.064 0 0.78 0 0 0</pose>
+          <geometry><sphere><radius>0.09</radius></sphere></geometry>
+          <material><ambient>1 0.45 0 1</ambient><diffuse>1 0.45 0 1</diffuse><emissive>0.8 0.35 0 1</emissive></material></visual>
+"""
+
+
+def marked_robot_sdf(tb3_share, body='tb3'):
     with open(os.path.join(tb3_share, 'urdf', 'gz_waffle.sdf.xacro')) as f:
         sdf = f.read()
     anchor = '</visual>\n      </link>\n\n      <link name="imu_link">'
     assert anchor in sdf, 'unexpected gz_waffle.sdf.xacro layout'
-    sdf = sdf.replace(anchor, '</visual>' + ROBOT_MARKERS + '      </link>\n\n      <link name="imu_link">', 1)
-    path = os.path.join(tempfile.gettempdir(), 'gz_waffle_marked.sdf.xacro')
+    extra = DARKO_BODY if body == 'darko' else ROBOT_MARKERS
+    sdf = sdf.replace(anchor, '</visual>' + extra + '      </link>\n\n      <link name="imu_link">', 1)
+    path = os.path.join(tempfile.gettempdir(), f'gz_waffle_{body}.sdf.xacro')
     with open(path, 'w') as f:
         f.write(sdf)
     return path
@@ -65,14 +82,21 @@ def generate_launch_description():
     scene = LaunchConfiguration('scene')
     out_dir = LaunchConfiguration('out_dir')
     mode = LaunchConfiguration('mode')
-    params = PythonExpression(["'", os.path.join(pkg, 'config', ''), "' + {'none': 'nav2_params_baseline.yaml', "
-                               "'social': 'nav2_params_social.yaml'}.get('", mode, "', 'nav2_params_prediction.yaml')"])
+    body = LaunchConfiguration('body')
+    params = PythonExpression(["'", os.path.join(pkg, 'config', ''), "' + {'none': 'nav2_params_baseline', "
+                               "'social': 'nav2_params_social'}.get('", mode, "', 'nav2_params_prediction')"
+                               " + ('_darko' if '", body, "' == 'darko' else '') + '.yaml'"])
+    robot_sdf = PythonExpression(["'", marked_robot_sdf(tb3, 'darko'), "' if '", body, "' == 'darko' else '",
+                                  marked_robot_sdf(tb3, 'tb3'), "'"])
     predictor_mode = PythonExpression(["'lstm' if '", mode, "' == 'social' else '", mode, "'"])
 
     args = [
         DeclareLaunchArgument('scene', default_value='thor_sc3'),
         DeclareLaunchArgument('out_dir', default_value='/ws/results/latest'),
         DeclareLaunchArgument('mode', default_value='none', description='none | cv | lstm | social'),
+        DeclareLaunchArgument('body', default_value='tb3', description='tb3 | darko (dataset robot size)'),
+        DeclareLaunchArgument('reaction', default_value='',
+                              description='reaction model json: people react to the robot (simple-body scenes)'),
         DeclareLaunchArgument('governor', default_value='relaxed', description='yield governor profile'),
         DeclareLaunchArgument('weights', default_value=os.path.join(pkg, 'models', 'weights_LSTM_robot.mat')),
         DeclareLaunchArgument('x', default_value='-7.0'),
@@ -89,7 +113,7 @@ def generate_launch_description():
 
     robot = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(tb3, 'launch', 'spawn_tb3.launch.py')),
-        launch_arguments={'use_sim_time': 'True', 'robot_sdf': marked_robot_sdf(tb3), 'x_pose': LaunchConfiguration('x'),
+        launch_arguments={'use_sim_time': 'True', 'robot_sdf': robot_sdf, 'x_pose': LaunchConfiguration('x'),
                           'y_pose': LaunchConfiguration('y'), 'z_pose': '0.01',
                           'yaw': LaunchConfiguration('yaw')}.items())
 
@@ -111,7 +135,8 @@ def generate_launch_description():
     people = Node(package='social_nav_sim', executable='people_publisher',
                   parameters=[{'use_sim_time': True,
                                'people_csv': PathJoinSubstitution([pkg, 'config', [scene, '_people.csv']]),
-                               'scene_meta': PathJoinSubstitution([pkg, 'config', [scene, '_meta.json']])}])
+                               'scene_meta': PathJoinSubstitution([pkg, 'config', [scene, '_meta.json']]),
+                               'reaction_model': LaunchConfiguration('reaction')}])
 
     predictor = Node(package='social_nav_sim', executable='predictor', condition=UnlessCondition(
                          PythonExpression(["'", mode, "' == 'none'"])),

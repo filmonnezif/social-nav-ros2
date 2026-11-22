@@ -31,3 +31,7 @@ results/**/grid_stdout.log
 ros2_ws/src/social_nav_sim/worlds/tune*
 ros2_ws/src/social_nav_sim/maps/tune*
 ros2_ws/src/social_nav_sim/config/tune*
+ros2_ws/src/social_nav_sim/worlds/*_b.sdf
+ros2_ws/src/social_nav_sim/maps/*_b.*
+ros2_ws/src/social_nav_sim/config/*_b_*
+results/queue_final.sh
