@@ -66,6 +66,24 @@ Collisions, minimum distance to any pedestrian, personal-space intrusions, time 
 
 **Data cleaning.** The motion-capture software often fails to solve a helmet as a rigid body even though its markers are visible; [`thor_magni.py`](learning/data/thor_magni.py) then uses the mean of the visible markers (within ~2–8 cm of the true centroid when checked on frames where both exist), which raises tracked coverage from ~65% to ~99%. Mis-solves that jump onto another helmet are removed by a rolling-median filter and a 2.5 m/s speed gate. Remaining short gaps are bridged by interpolation and flagged. [`rank_windows.py`](experiments/rank_windows.py) scores every 110 s window of every recording to pick the demo scene. The robot's lidar sees about 85% of the people within 3 m in both versions (the rest are hidden behind other people or obstacles). The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
 
+### Pedestrian prediction (H1, H2)
+
+Trained in MATLAB Online ([`train_predictor.m`](learning/matlab/train_predictor.m), CPU, 7.6 min for 9 trainings) on 36k snippets of THÖR-MAGNI Scenario 3; tested on a held-out recording day (17 May, 13k snippets). 3.2 s observed, 4.8 s predicted; mean over 3 seeds.
+
+| Model | ADE (m) | FDE (m) | ADE, robot within 3 m (m) |
+| --- | --- | --- | --- |
+| Constant velocity | 1.258 | 2.845 | 1.158 |
+| LSTM, own motion | 1.065 | 2.322 | 1.063 |
+| LSTM + 4 nearest people | **0.946** | 1.944 | 0.948 |
+| LSTM + people + robot | 0.952 | **1.933** | **0.935** |
+
+- **H1 supported:** learning cuts ADE by 24.8% and FDE by 32% versus constant velocity (target ≥ 15%); most of the gain comes from seeing nearby people.
+- **H2 not supported:** adding the robot lowers ADE near the robot by only 1.4% (better in 3 of 4 test recordings, about twice the seed-to-seed spread): a faint, consistent hint that people react to the teleoperated robot, not a clear effect.
+
+![Prediction error by model](docs/media/predictor_ade_fde.png)
+
+The robot-aware model drives the navigation experiment (H3). [`predictor_numpy.py`](learning/predictor_numpy.py) runs the exported weights without MATLAB and reproduces the MATLAB test metrics.
+
 ## Data
 
 | Dataset | Role |
