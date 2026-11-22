@@ -26,3 +26,5 @@ ros2_ws/src/social_nav_sim/worlds/t170522_*
 ros2_ws/src/social_nav_sim/maps/t170522_*
 ros2_ws/src/social_nav_sim/config/t170522_*
 results/h3_grid/**/bag/
+results/**/motion.npz
+results/**/grid_stdout.log

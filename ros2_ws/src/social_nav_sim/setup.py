@@ -29,6 +29,7 @@ setup(
             'video_recorder = social_nav_sim.video_recorder:main',
             'run_episode = social_nav_sim.run_episode:main',
             'predictor = social_nav_sim.predictor_node:main',
+            'yield_governor = social_nav_sim.yield_governor:main',
         ],
     },
 )

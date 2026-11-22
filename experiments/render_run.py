@@ -99,17 +99,27 @@ def main():
     bodies = sorted(tracks.body.unique())
     tracks_by_body = {b: g.sort_values('t') for b, g in tracks.groupby('body')}
 
-    # metrics from ground-truth people positions at robot odometry rate
-    dmin = []
-    for t, x, y, _ in robot:
-        pts = []
+    # metrics from ground-truth people positions at robot odometry rate. For the
+    # closest person we also split who is closing the gap: the robot's speed
+    # towards the person vs the person's speed towards the robot.
+    dmin, robot_closing = [], []
+    rv = np.gradient(robot[:, 1:3], robot[:, 0], axis=0) if len(robot) > 1 else np.zeros((len(robot), 2))
+    for k, (t, x, y, _) in enumerate(robot):
+        best, closing = np.inf, False
         for b in bodies:
             g = tracks_by_body[b]
-            i = np.searchsorted(g.t.values, t)
-            if 0 < i < len(g) and g.t.values[i] - g.t.values[i - 1] <= 0.5:
-                pts.append((np.interp(t, g.t.values, g.x.values), np.interp(t, g.t.values, g.y.values)))
-        dmin.append(min((math.hypot(px - x, py - y) for px, py in pts), default=np.inf))
-    dmin = np.array(dmin)
+            tv = g.t.values
+            i = np.searchsorted(tv, t)
+            if 0 < i < len(g) and tv[i] - tv[i - 1] <= 0.5:
+                px, py = np.interp(t, tv, g.x.values), np.interp(t, tv, g.y.values)
+                d = math.hypot(px - x, py - y)
+                if d < best:
+                    pv = np.array([g.x.values[i] - g.x.values[i - 1], g.y.values[i] - g.y.values[i - 1]]) / (tv[i] - tv[i - 1])
+                    u = np.array([px - x, py - y]) / max(d, 1e-6)          # robot -> person
+                    best, closing = d, float(rv[k] @ u) > float(-pv @ u)   # robot approaches faster
+        dmin.append(best)
+        robot_closing.append(closing)
+    dmin, robot_closing = np.array(dmin), np.array(robot_closing)
     episode = json.loads((run / 'episode.json').read_text())
     moving = (robot[:, 0] >= episode['goals'][0]['start_s']) & (robot[:, 0] <= episode['end_s'])
     dt = np.diff(robot[:, 0], prepend=robot[0, 0])
@@ -121,6 +131,8 @@ def main():
         'min_distance_to_person_m': round(float(dmin[moving].min()), 3),
         'time_within_personal_space_s': round(float(dt[moving & (dmin < PERSONAL_SPACE)].sum()), 2),
         'time_within_1m_s': round(float(dt[moving & (dmin < 1.0)].sum()), 2),
+        'robot_closing_within_0.5m_s': round(float(dt[moving & (dmin < PERSONAL_SPACE) & robot_closing].sum()), 2),
+        'robot_closing_within_1m_s': round(float(dt[moving & (dmin < 1.0) & robot_closing].sum()), 2),
         'personal_space_threshold_m': PERSONAL_SPACE,
     }
     (run / 'metrics.json').write_text(json.dumps(metrics, indent=2))

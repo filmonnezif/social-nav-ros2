@@ -5,6 +5,8 @@ predictor). For each scene and direction the three set-ups run back to back:
   none  plain Nav2
   cv    Nav2 + prediction layer, constant-velocity forecasts
   lstm  Nav2 + prediction layer, MATLAB-trained LSTM forecasts
+  social  LSTM forecasts + yielding speed governor + limits fitted to the human driver
+          (run separately with --modes social)
 Each run leaves a rosbag, the scene-camera MP4 and metrics.json in
 results/h3_grid/<scene>_<dir>_<mode>/. Finished runs are skipped, so the grid
 can be stopped and resumed.
@@ -71,12 +73,13 @@ def main():
     ap.add_argument('--tracks', type=Path, required=True)
     ap.add_argument('--maps', type=Path, required=True)
     ap.add_argument('--limit', type=int, default=0, help='run at most this many episodes')
+    ap.add_argument('--modes', default=','.join(MODES), help='comma-separated set-ups to run')
     args = ap.parse_args()
 
     scenes = build_scenes(args.tracks, args.maps)
     out_root = REPO / 'results/h3_grid'
     out_root.mkdir(parents=True, exist_ok=True)
-    jobs = [(s, d, m) for s in scenes for d in DIRECTIONS for m in MODES]
+    jobs = [(s, d, m) for s in scenes for d in DIRECTIONS for m in args.modes.split(',')]
     log = open(out_root / 'progress.log', 'a')
     print(f'{len(scenes)} scenes, {len(jobs)} runs', file=log, flush=True)
 

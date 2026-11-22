@@ -5,9 +5,11 @@ Everything shuts down when the episode node finishes, leaving in `out_dir`:
   run.mp4       video from the off-screen scene camera
   episode.json  goals reached and timings
 
-mode:=none|cv|lstm picks the H3 set-up: plain Nav2, or Nav2 with the prediction
-costmap layer fed by constant-velocity or LSTM forecasts. All modes share the
-same Nav2 parameters apart from that layer being enabled.
+mode:=none|cv|lstm|social picks the set-up: plain Nav2, Nav2 with the prediction
+costmap layer fed by constant-velocity or LSTM forecasts, or "social": LSTM
+forecasts plus the yielding speed governor and speed/acceleration limits fitted
+to the human driver. none/cv/lstm share the same Nav2 parameters apart from the
+prediction layer being enabled.
 """
 import os
 import tempfile
@@ -16,7 +18,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, EmitEvent, ExecuteProcess,
                             IncludeLaunchDescription, RegisterEventHandler, TimerAction)
-from launch.conditions import UnlessCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -53,7 +55,7 @@ def marked_robot_sdf(tb3_share):
 BAG_TOPICS = ['/clock', '/tf', '/tf_static', '/odom', '/scan', '/cmd_vel', '/plan',
               '/local_plan', '/amcl_pose', '/people/poses', '/people/markers',
               '/local_costmap/costmap', '/global_costmap/costmap', '/goal_pose',
-              '/predicted_people', '/predicted_people/markers']
+              '/predicted_people', '/predicted_people/markers', '/speed_limit']
 
 
 def generate_launch_description():
@@ -63,13 +65,14 @@ def generate_launch_description():
     scene = LaunchConfiguration('scene')
     out_dir = LaunchConfiguration('out_dir')
     mode = LaunchConfiguration('mode')
-    params = PythonExpression(["'", os.path.join(pkg, 'config', ''), "' + ('nav2_params_baseline.yaml' if '",
-                               mode, "' == 'none' else 'nav2_params_prediction.yaml')"])
+    params = PythonExpression(["'", os.path.join(pkg, 'config', ''), "' + {'none': 'nav2_params_baseline.yaml', "
+                               "'social': 'nav2_params_social.yaml'}.get('", mode, "', 'nav2_params_prediction.yaml')"])
+    predictor_mode = PythonExpression(["'lstm' if '", mode, "' == 'social' else '", mode, "'"])
 
     args = [
         DeclareLaunchArgument('scene', default_value='thor_sc3'),
         DeclareLaunchArgument('out_dir', default_value='/ws/results/latest'),
-        DeclareLaunchArgument('mode', default_value='none', description='none | cv | lstm'),
+        DeclareLaunchArgument('mode', default_value='none', description='none | cv | lstm | social'),
         DeclareLaunchArgument('weights', default_value=os.path.join(pkg, 'models', 'weights_LSTM_robot.mat')),
         DeclareLaunchArgument('x', default_value='-7.0'),
         DeclareLaunchArgument('y', default_value='-1.0'),
@@ -111,8 +114,12 @@ def generate_launch_description():
 
     predictor = Node(package='social_nav_sim', executable='predictor', condition=UnlessCondition(
                          PythonExpression(["'", mode, "' == 'none'"])),
-                     parameters=[{'use_sim_time': True, 'mode': mode,
+                     parameters=[{'use_sim_time': True, 'mode': predictor_mode,
                                   'weights': LaunchConfiguration('weights')}])
+
+    governor = Node(package='social_nav_sim', executable='yield_governor', condition=IfCondition(
+                        PythonExpression(["'", mode, "' == 'social'"])),
+                    parameters=[{'use_sim_time': True}])
 
     recorder = Node(package='social_nav_sim', executable='video_recorder',
                     parameters=[{'use_sim_time': True, 'output': PathJoinSubstitution([out_dir, 'run.mp4'])}])
@@ -131,7 +138,7 @@ def generate_launch_description():
         target_action=episode, on_exit=[EmitEvent(event=Shutdown(reason='episode finished'))]))
 
     return LaunchDescription(args + [
-        gazebo, robot, state_pub, cam_bridge, people, predictor,
+        gazebo, robot, state_pub, cam_bridge, people, predictor, governor,
         TimerAction(period=3.0, actions=[nav2]),
         TimerAction(period=5.0, actions=[recorder, bag, episode]),
         stop_when_done,

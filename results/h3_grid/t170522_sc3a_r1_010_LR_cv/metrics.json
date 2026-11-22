@@ -8,5 +8,7 @@
   "min_distance_to_person_m": 0.063,
   "time_within_personal_space_s": 1.33,
   "time_within_1m_s": 4.07,
+  "robot_closing_within_0.5m_s": 0.68,
+  "robot_closing_within_1m_s": 1.94,
   "personal_space_threshold_m": 0.5
 }
