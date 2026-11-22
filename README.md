@@ -12,9 +12,9 @@ A mobile robot that learns from real people how to move through a crowd. A traje
 
 ## Demo
 
-**First run: Nav2 baseline among 9 real people replayed from THÖR-MAGNI.** The room comes from the dataset's floor map and every person walks their recorded trajectory. The orange robot crosses the room and returns; the bottom panel shows the same moment from above with the Nav2 plan.
+**Nav2 baseline among 9 real people replayed from THÖR-MAGNI.** The room comes from the dataset's floor map and every person walks their recorded trajectory as an animated figure. The orange robot crosses the room and returns; the bottom panel shows the same moment from above with the Nav2 plan.
 
-![First run: Nav2 baseline among replayed THÖR-MAGNI pedestrians](docs/media/first_run.gif)
+![Nav2 baseline among replayed THÖR-MAGNI pedestrians](docs/media/baseline_walking.gif)
 
 Full video, rosbag and metrics: see [Releases](../../releases). The replayed people do not react to the robot (they are recordings), so this run is a stress test for the planner, not a model of how people respond.
 
@@ -58,9 +58,10 @@ Collisions, minimum distance to any pedestrian, personal-space intrusions, time 
 
 | Run | Set-up | Goals reached | Time per goal | Min distance to a person | Time within 0.5 m | Time within 1 m |
 | --- | --- | --- | --- | --- | --- | --- |
-| [first_run](results/first_run/metrics.json) | A. Baseline | 2 / 2 | 47.9 s, 48.5 s | 0.10 m | 6.1 s | 21.8 s |
+| [actors_run](results/actors_run/metrics.json) | A. Baseline (walking figures) | 2 / 2 | 46.5 s, 46.2 s | 0.17 m | 3.0 s | 15.8 s |
+| [first_run](results/first_run/metrics.json) | A. Baseline (simple bodies) | 2 / 2 | 47.9 s, 48.5 s | 0.10 m | 6.1 s | 21.8 s |
 
-The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
+Both runs replay the same people; the small differences come from Nav2 reacting to slightly different timing. The robot's lidar sees about 85% of the people within 3 m in both versions (the rest are hidden behind other people or obstacles). The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
 
 ## Data
 

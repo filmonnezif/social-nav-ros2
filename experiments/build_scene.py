@@ -1,9 +1,10 @@
 """Build a Gazebo world, a Nav2 map and a pedestrian track file from one THÖR-MAGNI run.
 
 The room geometry comes from the dataset's floor map (1 px = 1 cm). Each recorded
-person becomes a body in Gazebo whose pose people_publisher drives along their
-real trajectory; the recorded
-teleoperated robot is dropped, since our robot takes its place.
+person replays their real trajectory, either as an animated walking actor that
+Gazebo moves itself (--people actors, the default) or as a simple body whose pose
+people_publisher drives (--people bodies). The recorded teleoperated robot is
+dropped, since our robot takes its place.
 """
 import argparse
 import json
@@ -98,6 +99,50 @@ def person_sdf(name, i):
     </model>'''
 
 
+WALK_MESH = 'https://fuel.gazebosim.org/1.0/Mingfei/models/actor/tip/files/meshes/walk.dae'
+
+
+def actor_sdf(name, segs):
+    """An animated actor following the recorded spans; it waits off-stage while untracked.
+
+    The script must loop: in Gazebo Harmonic a non-looping actor script stalls the
+    simulation once rendering sensors are present. A final waypoint far in the future
+    keeps the loop from ever restarting during an episode.
+    """
+    wps = []
+
+    def add(t, x, y, yaw):
+        if wps and t <= wps[-1][0] + 1e-3:
+            t = wps[-1][0] + 0.01
+        wps.append((t, x, y, yaw))
+
+    add(0.0, *HIDDEN, 0.0)
+    for seg in segs:
+        t, x, y = seg.t.values, seg.x.values, seg.y.values
+        vx, vy = np.gradient(x), np.gradient(y)
+        yaw = np.arctan2(vy, vx)
+        moving = np.hypot(vx, vy) > 0.01
+        for i in range(1, len(yaw)):
+            if not moving[i]:
+                yaw[i] = yaw[i - 1]
+        yaw = np.unwrap(yaw)
+        add(t[0] - 0.02, *HIDDEN, 0.0)
+        for ti, xi, yi, ai in zip(t, x, y, yaw):
+            add(ti, xi, yi, ai)
+        add(t[-1] + 0.02, *HIDDEN, 0.0)
+    add(1e5, *HIDDEN, 0.0)
+    pts = ''.join(f'<waypoint><time>{t:.2f}</time><pose>{x:.3f} {y:.3f} 0 0 0 {a:.3f}</pose></waypoint>'
+                  for t, x, y, a in wps)
+    return f'''
+    <actor name="{name}">
+      <skin><filename>{WALK_MESH}</filename><scale>1.0</scale></skin>
+      <animation name="walk"><filename>{WALK_MESH}</filename><interpolate_x>true</interpolate_x></animation>
+      <script><loop>true</loop><delay_start>0</delay_start><auto_start>true</auto_start>
+        <trajectory id="0" type="walk">{pts}</trajectory>
+      </script>
+    </actor>'''
+
+
 def segments(df, max_gap=0.5):
     gaps = np.where(np.diff(df.t.values) > max_gap)[0]
     edges = [0, *(gaps + 1), len(df)]
@@ -136,6 +181,7 @@ def main():
     ap.add_argument('--duration', type=float, default=150.0)
     ap.add_argument('--lead', type=float, default=15.0, help='sim seconds before people start walking')
     ap.add_argument('--fps', type=int, default=15)
+    ap.add_argument('--people', choices=['actors', 'bodies'], default='actors')
     ap.add_argument('--out', type=Path, default=Path(__file__).resolve().parents[1] / 'ros2_ws/src/social_nav_sim')
     args = ap.parse_args()
 
@@ -153,7 +199,8 @@ def main():
         segs = segments(df)
         if not segs:
             continue
-        bodies.append(person_sdf(body.lower(), len(bodies)))
+        bodies.append(actor_sdf(body.lower(), segs) if args.people == 'actors'
+                      else person_sdf(body.lower(), len(bodies)))
         people.append(pd.concat(segs))
     people = pd.concat(people)
     people[['t', 'body', 'role', 'x', 'y']].to_csv(args.out / 'config' / f'{args.name}_people.csv',
@@ -163,7 +210,7 @@ def main():
              + ''.join(bodies) + '\n  </world>\n</sdf>\n')
     (args.out / 'worlds' / f'{args.name}.sdf').write_text(world)
     meta = {'source': args.tracks.name, 'dataset_t0': args.t0, 'duration': args.duration,
-            'lead': args.lead, 'people': int(people.body.nunique())}
+            'lead': args.lead, 'people': int(people.body.nunique()), 'people_model': args.people}
     (args.out / 'config' / f'{args.name}_meta.json').write_text(json.dumps(meta, indent=2))
     print(meta, 'boxes:', len(rectangles(occ)))
 

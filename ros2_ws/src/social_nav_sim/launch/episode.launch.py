@@ -92,7 +92,8 @@ def generate_launch_description():
 
     people = Node(package='social_nav_sim', executable='people_publisher',
                   parameters=[{'use_sim_time': True,
-                               'people_csv': PathJoinSubstitution([pkg, 'config', [scene, '_people.csv']])}])
+                               'people_csv': PathJoinSubstitution([pkg, 'config', [scene, '_people.csv']]),
+                               'scene_meta': PathJoinSubstitution([pkg, 'config', [scene, '_meta.json']])}])
 
     recorder = Node(package='social_nav_sim', executable='video_recorder',
                     parameters=[{'use_sim_time': True, 'output': PathJoinSubstitution([out_dir, 'run.mp4'])}])

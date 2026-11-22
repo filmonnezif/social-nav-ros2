@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg mesa-utils libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Virtual X display, for render paths that need one (e.g. animated actors)
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
     TURTLEBOT3_MODEL=waffle
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc

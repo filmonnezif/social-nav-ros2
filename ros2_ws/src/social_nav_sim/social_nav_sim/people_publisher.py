@@ -1,11 +1,13 @@
 """Replay THÖR-MAGNI pedestrians in Gazebo and publish them on ROS topics, in sync with sim time.
 
-Each recorded person has a body model in the world (named after its helmet, e.g.
-`helmet_3`). This node moves those bodies along the recorded trajectories through
-Gazebo's set_pose_vector service, and publishes the same ground-truth positions:
+When the scene uses simple bodies (named after their helmet, e.g. `helmet_3`), this
+node moves them along the recorded trajectories through Gazebo's set_pose_vector
+service. Animated actors move by themselves. Either way it publishes the same
+ground-truth positions:
   /people/poses    geometry_msgs/PoseArray (map frame)
   /people/markers  visualization_msgs/MarkerArray (for RViz and the rosbag)
 """
+import json
 import math
 
 import numpy as np
@@ -27,6 +29,9 @@ class PeoplePublisher(Node):
         self.declare_parameter('people_csv', '')
         self.declare_parameter('world', 'thor_magni')
         self.declare_parameter('rate', 20.0)
+        self.declare_parameter('scene_meta', '')
+        meta = self.get_parameter('scene_meta').value
+        self.drive_gazebo = not meta or json.load(open(meta)).get('people_model', 'bodies') == 'bodies'
         df = pd.read_csv(self.get_parameter('people_csv').value)
         self.tracks = {b: (g.t.values, g.x.values, g.y.values) for b, g in df.groupby('body')}
         self.ids = {b: i for i, b in enumerate(sorted(self.tracks))}
@@ -86,7 +91,8 @@ class PeoplePublisher(Node):
             m.scale.z = 1.8
             m.color.r, m.color.g, m.color.b, m.color.a = 0.9, 0.3, 0.2, 0.8
             markers.markers.append(m)
-        self.gz.request(self.service, req, Pose_V, Boolean, 200)
+        if self.drive_gazebo:
+            self.gz.request(self.service, req, Pose_V, Boolean, 200)
         self.pub_poses.publish(poses)
         self.pub_markers.publish(markers)
 
