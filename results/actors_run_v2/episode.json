@@ -8,7 +8,7 @@
       ],
       "result": "SUCCEEDED",
       "start_s": 15.0,
-      "duration_s": 46.52
+      "duration_s": 47.82
     },
     {
       "goal": [
@@ -17,9 +17,9 @@
         3.14159
       ],
       "result": "SUCCEEDED",
-      "start_s": 61.52,
-      "duration_s": 46.24
+      "start_s": 62.82,
+      "duration_s": 44.43
     }
   ],
-  "end_s": 107.75
+  "end_s": 107.25
 }

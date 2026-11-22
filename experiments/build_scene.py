@@ -143,6 +143,30 @@ def actor_sdf(name, segs):
     </actor>'''
 
 
+def fill_gaps(df, dt=0.1, smooth_s=0.5):
+    """Resample one person onto a uniform time grid over their whole tracked span.
+
+    Motion capture loses helmets for up to ~12 s at a time while the person keeps
+    walking; without filling, a replayed person would vanish and reappear metres
+    away. Gaps are bridged by linear interpolation, then a short moving average
+    removes marker jitter. Bridged samples are flagged with filled=1.
+    """
+    t = df.t.values
+    grid = np.round(np.arange(t[0], t[-1] + 1e-9, dt), 2)
+    x, y = np.interp(grid, t, df.x.values), np.interp(grid, t, df.y.values)
+    k = max(int(round(smooth_s / dt)), 1)
+    if k > 1:
+        kernel = np.ones(k) / k
+        pad = k // 2
+        x = np.convolve(np.pad(x, pad, mode='edge'), kernel, mode='same')[pad:pad + len(grid)]
+        y = np.convolve(np.pad(y, pad, mode='edge'), kernel, mode='same')[pad:pad + len(grid)]
+    i = np.clip(np.searchsorted(t, grid), 1, len(t) - 1)
+    nearest = np.minimum(np.abs(t[i] - grid), np.abs(t[i - 1] - grid))
+    out = pd.DataFrame({'t': grid, 'x': x, 'y': y, 'filled': (nearest > 1.5 * dt).astype(int)})
+    out['body'], out['role'] = df.body.iloc[0], df.role.iloc[0]
+    return out
+
+
 def segments(df, max_gap=0.5):
     gaps = np.where(np.diff(df.t.values) > max_gap)[0]
     edges = [0, *(gaps + 1), len(df)]
@@ -196,14 +220,15 @@ def main():
     bodies, people = [], []
     for body, df in win.groupby('body'):
         df = df.sort_values('t')
-        segs = segments(df)
-        if not segs:
+        if len(df) < 5:
             continue
+        segs = [fill_gaps(df)]
         bodies.append(actor_sdf(body.lower(), segs) if args.people == 'actors'
                       else person_sdf(body.lower(), len(bodies)))
         people.append(pd.concat(segs))
     people = pd.concat(people)
-    people[['t', 'body', 'role', 'x', 'y']].to_csv(args.out / 'config' / f'{args.name}_people.csv',
+    print('bridged tracking gaps: %.1f%% of samples' % (100 * people.filled.mean()))
+    people[['t', 'body', 'role', 'x', 'y', 'filled']].to_csv(args.out / 'config' / f'{args.name}_people.csv',
                                                    index=False, float_format='%.3f')
 
     world = (WORLD_HEAD.format(fps=args.fps) + '    ' + box_sdf(occ, rectangles(occ))

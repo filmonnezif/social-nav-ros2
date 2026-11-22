@@ -58,10 +58,10 @@ Collisions, minimum distance to any pedestrian, personal-space intrusions, time 
 
 | Run | Set-up | Goals reached | Time per goal | Min distance to a person | Time within 0.5 m | Time within 1 m |
 | --- | --- | --- | --- | --- | --- | --- |
-| [actors_run](results/actors_run/metrics.json) | A. Baseline (walking figures) | 2 / 2 | 46.5 s, 46.2 s | 0.17 m | 3.0 s | 15.8 s |
-| [first_run](results/first_run/metrics.json) | A. Baseline (simple bodies) | 2 / 2 | 47.9 s, 48.5 s | 0.10 m | 6.1 s | 21.8 s |
+| [actors_run_v2](results/actors_run_v2/metrics.json) | A. Baseline (walking figures) | 2 / 2 | 47.8 s, 44.4 s | 0.09 m | 4.9 s | 26.8 s |
+| [first_run](results/first_run/metrics.json) | A. Baseline (simple bodies, tracking gaps not yet bridged) | 2 / 2 | 47.9 s, 48.5 s | 0.10 m | 6.1 s | 21.8 s |
 
-Both runs replay the same people; the small differences come from Nav2 reacting to slightly different timing. The robot's lidar sees about 85% of the people within 3 m in both versions (the rest are hidden behind other people or obstacles). The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
+Motion capture loses people's helmets for up to ~12 s while they keep walking (31% of samples in this window). Since `actors_run_v2` these gaps are bridged by interpolation, so people walk continuously instead of vanishing and reappearing; that is also why its numbers differ from `first_run`. The robot's lidar sees about 85% of the people within 3 m in both versions (the rest are hidden behind other people or obstacles). The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
 
 ## Data
 
