@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>social_nav_sim</name>
+  <version>0.1.0</version>
+  <description>Gazebo scenes that replay THÖR-MAGNI pedestrians around a Nav2 robot, with recording.</description>
+  <maintainer email="139163041+filmonnezif@users.noreply.github.com">Filmon Nezif</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_simple_commander</exec_depend>
+  <exec_depend>nav2_minimal_tb3_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

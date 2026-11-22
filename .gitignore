@@ -18,3 +18,5 @@ __pycache__/
 *.pyc
 .venv/
 .ipynb_checkpoints/
+results/**/console.log
+results/**/run.mp4.frames.csv

@@ -1,0 +1,19 @@
+# ROS 2 Jazzy + Nav2 + Gazebo Harmonic, for the social-navigation experiments.
+FROM docker.io/library/ros:jazzy-ros-base-noble
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-jazzy-navigation2 \
+        ros-jazzy-nav2-bringup \
+        ros-jazzy-nav2-minimal-tb3-sim \
+        ros-jazzy-ros-gz \
+        ros-jazzy-rosbag2-storage-mcap \
+        ros-jazzy-rmw-cyclonedds-cpp \
+        python3-pandas python3-scipy python3-matplotlib \
+        ffmpeg mesa-utils libegl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+    TURTLEBOT3_MODEL=waffle
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+WORKDIR /ws

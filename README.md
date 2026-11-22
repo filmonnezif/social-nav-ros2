@@ -12,7 +12,11 @@ A mobile robot that learns from real people how to move through a crowd. A traje
 
 ## Demo
 
-_Coming soon: side-by-side videos of the three set-ups in the crossing, corridor and crowd scenarios._
+**First run: Nav2 baseline among 9 real people replayed from THÖR-MAGNI.** The room comes from the dataset's floor map and every person walks their recorded trajectory. The orange robot crosses the room and returns; the bottom panel shows the same moment from above with the Nav2 plan.
+
+![First run: Nav2 baseline among replayed THÖR-MAGNI pedestrians](docs/media/first_run.gif)
+
+Full video, rosbag and metrics: see [Releases](../../releases). The replayed people do not react to the robot (they are recordings), so this run is a stress test for the planner, not a model of how people respond.
 
 ## The question
 
@@ -52,7 +56,11 @@ Collisions, minimum distance to any pedestrian, personal-space intrusions, time 
 
 ## Results
 
-_Pending._
+| Run | Set-up | Goals reached | Time per goal | Min distance to a person | Time within 0.5 m | Time within 1 m |
+| --- | --- | --- | --- | --- | --- | --- |
+| [first_run](results/first_run/metrics.json) | A. Baseline | 2 / 2 | 47.9 s, 48.5 s | 0.10 m | 6.1 s | 21.8 s |
+
+The baseline reaches its goals but passes very close to people, because Nav2 only sees where people are now, not where they are going. That gap is what the predictor targets.
 
 ## Data
 
@@ -76,7 +84,18 @@ docs/media/      Figures and GIFs used in this README
 
 ## Reproduce
 
-_Instructions will be added with the first working release._
+Needs Podman (or Docker) and a GPU that Mesa supports for headless rendering.
+
+```bash
+podman build -t localhost/social-nav:jazzy -f docker/Containerfile docker
+
+# one-off: turn a THÖR-MAGNI run into a world, a Nav2 map and a people file
+python learning/data/thor_magni.py <THOR_MAGNI>/CSVs_Scenarios/Scenario_3/THOR-Magni_120522_SC3A_R1.csv tracks.csv
+python experiments/build_scene.py tracks.csv <THOR_MAGNI>/maps/1205_SC3_map.png --t0 120 --duration 110
+
+# run, record and render one episode -> results/<name>/{bag,run.mp4,demo.mp4,metrics.json}
+experiments/run_episode.sh my_run
+```
 
 ## Earlier prototype
 
