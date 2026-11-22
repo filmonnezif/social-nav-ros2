@@ -1,0 +1,13 @@
+# Yield governor profile B: keep rolling instead of crawling, cap only people
+# close and ahead, react later to conflicts
+yield_governor:
+  ros__parameters:
+    v_max: 0.47
+    v_min: 0.18
+    conflict_dist: 0.8
+    t_safe: 0.8
+    t_free: 3.0
+    approach_cap: 0.27
+    approach_radius: 1.0
+    approach_cone_deg: 45.0
+    rise_rate: 0.25

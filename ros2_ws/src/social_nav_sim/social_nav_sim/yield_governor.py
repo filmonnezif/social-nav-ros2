@@ -5,7 +5,8 @@ current speed limit, compares that with every person's forecast
 (/predicted_people/markers, one 4.8 s line per person, 0.4 s per point), and
 finds the earliest predicted conflict (closer than `conflict_dist`). The speed
 limit then scales with the time left before that conflict, and is capped to
-`approach_cap` while a person is within 1.5 m in front of the robot. The limit
+`approach_cap` while a person is within `approach_radius` inside a cone in front
+of the robot. Profiles live in config/governor_*.yaml. The limit
 drops as fast as needed but rises at most `rise_rate` per second, so the robot
 does not lurch. Thresholds default to statistics of the human driver in
 THÖR-MAGNI (see experiments/human_reference.py). Publishes nav2_msgs/SpeedLimit
@@ -34,9 +35,12 @@ class YieldGovernor(Node):
         self.declare_parameter('t_safe', 1.2)           # s: conflicts nearer than this -> v_min
         self.declare_parameter('t_free', 4.0)           # s: conflicts further than this -> v_max
         self.declare_parameter('approach_cap', 0.27)    # human p95 speed towards a person within 1.5 m
+        self.declare_parameter('approach_radius', 1.5)  # m
+        self.declare_parameter('approach_cone_deg', 90.0)  # half-angle of "in front"
         self.declare_parameter('rise_rate', 0.15)       # m/s per s
         p = {n: self.get_parameter(n).value for n in
-             ('v_max', 'v_min', 'conflict_dist', 't_safe', 't_free', 'approach_cap', 'rise_rate')}
+             ('v_max', 'v_min', 'conflict_dist', 't_safe', 't_free', 'approach_cap',
+              'approach_radius', 'approach_cone_deg', 'rise_rate')}
         self.__dict__.update(p)
         self.plan = None
         self.forecasts = []
@@ -87,7 +91,9 @@ class YieldGovernor(Node):
                 if len(hit):
                     t_conflict = min(t_conflict, (hit[0] + 1) * STEP)
                 rel = f[0] - pos                                   # where the person is about now
-                if np.linalg.norm(rel) < 1.5 and rel @ heading > 0:
+                dist = np.linalg.norm(rel)
+                cos_cone = math.cos(math.radians(self.approach_cone_deg))
+                if dist < self.approach_radius and rel @ heading > cos_cone * dist:
                     target = min(target, self.approach_cap)
             if math.isfinite(t_conflict):
                 a = (t_conflict - self.t_safe) / (self.t_free - self.t_safe)

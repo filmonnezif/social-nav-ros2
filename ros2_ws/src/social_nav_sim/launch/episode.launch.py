@@ -73,6 +73,7 @@ def generate_launch_description():
         DeclareLaunchArgument('scene', default_value='thor_sc3'),
         DeclareLaunchArgument('out_dir', default_value='/ws/results/latest'),
         DeclareLaunchArgument('mode', default_value='none', description='none | cv | lstm | social'),
+        DeclareLaunchArgument('governor', default_value='relaxed', description='yield governor profile'),
         DeclareLaunchArgument('weights', default_value=os.path.join(pkg, 'models', 'weights_LSTM_robot.mat')),
         DeclareLaunchArgument('x', default_value='-7.0'),
         DeclareLaunchArgument('y', default_value='-1.0'),
@@ -119,7 +120,8 @@ def generate_launch_description():
 
     governor = Node(package='social_nav_sim', executable='yield_governor', condition=IfCondition(
                         PythonExpression(["'", mode, "' == 'social'"])),
-                    parameters=[{'use_sim_time': True}])
+                    parameters=[PathJoinSubstitution([pkg, 'config', ['governor_', LaunchConfiguration('governor'), '.yaml']]),
+                                {'use_sim_time': True}])
 
     recorder = Node(package='social_nav_sim', executable='video_recorder',
                     parameters=[{'use_sim_time': True, 'output': PathJoinSubstitution([out_dir, 'run.mp4'])}])
