@@ -16,8 +16,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
-from motion_metrics import compute  # noqa: E402
-from render_run import people_tracks, read_bag, robot_in_map  # noqa: E402
+from motion_metrics import burden, compute  # noqa: E402
+from render_run import PKG, people_tracks, read_bag, robot_in_map  # noqa: E402
 
 
 def main():
@@ -34,6 +34,13 @@ def main():
         out = compute(robot[m, 0], robot[m, 1], robot[m, 2], people)
         if out is None:
             continue
+        # burden on people: only meaningful when they could react (actual != recorded)
+        if tracked:
+            rec = pd.read_csv(PKG / 'config' / f'{scene}_people.csv')
+            recorded = {i: (g.t.values, g.x.values, g.y.values)
+                        for i, (_, g) in enumerate(sorted(rec.groupby('body'), key=lambda kv: kv[0]))}
+            actual = {i: tuple(np.array(v).T) for i, v in sorted(tracked.items())}
+            out['scalars'].update(burden(actual, recorded, robot[m, 0][0], robot[m, 0][-1]))
         np.savez(run / 'motion.npz', **out['samples'])
         (run / 'motion.json').write_text(json.dumps(out['scalars'], indent=2))
         print(run.name, json.dumps({k: round(v, 3) for k, v in out['scalars'].items()}))

@@ -12,9 +12,13 @@ plus an offset o driven by a repulsion from the robot and a damped spring back t
 the path:  o'' = A exp(-(d - R)/B) n - k o - c o',  with d the person-robot
 distance, n the unit vector robot -> person, R = 0.7 m (DARKO half-length + a
 person's radius), k = 2 s^-2, c = 2.8 s^-1 (critically damped). A and B are chosen
-so that replaying the training days against placebo robots reproduces the real
-occupancy ratios. Caveat: in the data the human driver also steered away from
-people, so attributing all of the avoidance to the people is an upper bound.
+to match two things measured on the data at once: (1) the occupancy ratios, and
+(2) how much harder people accelerate near the real robot than near a placebo
+(extra RMS acceleration ~0.35 m/s^2 within 1.5 m, ~0.2 between 1.5 and 2.5 m,
+~0 beyond). (2) keeps the simulated people from doing more work than real people
+did; whatever avoidance remains in the data was done by the human driver, which
+our robot has to do itself. Matching occupancy alone (first attempt) gave
+unrealistically strong, long-range sidesteps of ~1.5 m.
 
 Usage: python learning/reaction/calibrate_reaction.py <tracks_dir>  -> results/reaction/reaction_calibration.json
 """
@@ -57,8 +61,13 @@ def occupancy(dist_list):
     return h / max(len(d), 1)
 
 
-def simulate(P, robot, A, B):
-    """Replay people with the reactive offset against a robot path; returns distances [P x T]."""
+ACC_BINS = (1.5, 2.5, 4.0)
+REAL_EXTRA_ACC = np.array([0.345, 0.20, 0.0])     # sqrt(rms_real^2 - rms_placebo^2), see docstring
+
+
+def simulate(P, robot, A, B, acc_out=None):
+    """Replay people with the reactive offset against a robot path; returns distances [P x T].
+    If acc_out is a list, appends (distance, |offset acceleration|) samples to it."""
     o, v = np.zeros(P.shape[::2]), np.zeros(P.shape[::2])
     D = np.full(P.shape[:2], np.nan)
     for k in range(P.shape[1]):
@@ -70,6 +79,8 @@ def simulate(P, robot, A, B):
         if A > 0:
             f[ok] = (A * np.exp(-(d[ok] - R) / B) / np.maximum(d[ok], 1e-6))[:, None] * rel[ok]
         acc = f - K * o - C * v
+        if acc_out is not None:
+            acc_out.append(np.stack([d[ok], np.linalg.norm(acc[ok], axis=1)], 1))
         v = np.where(ok[:, None], v + acc * DT, 0)
         o = np.where(ok[:, None], o + v * DT, 0)
         D[:, k] = d
@@ -95,18 +106,28 @@ def main():
     print('real / placebo occupancy by distance:', dict(zip(BINS, np.round(target, 2))))
 
     best = None
-    for A in (8.0, 16.0, 32.0, 64.0):
-        for B in (0.5, 0.7, 1.0):
-            sim = occupancy([simulate(P, shifted(r, sh), A, B).ravel() for _, _, P, r in train for sh in SHIFTS[:2]])
+    for A in (0.25, 0.5, 1.0, 2.0, 4.0):
+        for B in (0.2, 0.3, 0.5, 0.7):
+            accs = []
+            sim = occupancy([simulate(P, shifted(r, sh), A, B, accs).ravel() for _, _, P, r in train for sh in SHIFTS[:2]])
             ratio = sim / np.maximum(placebo, 1e-12)
-            err = float(np.sum((ratio[1:5] - target[1:5]) ** 2))      # fit the 0.5-1.5 m bins
-            print(f'A {A:4.1f} B {B:.1f}: ratios {np.round(ratio[:6], 2)}  err {err:.3f}')
+            a = np.concatenate(accs)
+            lo = np.concatenate([[0], ACC_BINS[:-1]])
+            sim_acc = np.array([np.sqrt(np.mean(a[(a[:, 0] >= l) & (a[:, 0] < h), 1] ** 2)) for l, h in zip(lo, ACC_BINS)])
+            err_occ = float(np.sum((ratio[1:5] - target[1:5]) ** 2))
+            err_acc = float(np.sum((sim_acc - REAL_EXTRA_ACC) ** 2))
+            err = err_occ + 4 * err_acc
+            print(f'A {A:4.2f} B {B:.1f}: ratios {np.round(ratio[:6], 2)} extra acc {np.round(sim_acc, 2)}  '
+                  f'err occ {err_occ:.3f} acc {err_acc:.3f}')
             if best is None or err < best[0]:
-                best = (err, A, B, ratio)
-    err, A, B, ratio = best
-    res = {'A': A, 'B': B, 'R': R, 'k': K, 'c': C, 'fit_error': err,
-           'bins_m': BINS.tolist(), 'target_ratio': target.tolist(), 'simulated_ratio': ratio.tolist(),
-           'note': 'upper bound: the human driver also steered away from people'}
+                best = (err, A, B, ratio, sim_acc, err_occ, err_acc)
+    err, A, B, ratio, sim_acc, err_occ, err_acc = best
+    res = {'A': A, 'B': B, 'R': R, 'k': K, 'c': C, 'fit_error': err, 'occupancy_error': err_occ,
+           'acceleration_error': err_acc, 'bins_m': BINS.tolist(), 'target_ratio': target.tolist(),
+           'simulated_ratio': ratio.tolist(), 'acc_bins_m': list(ACC_BINS),
+           'target_extra_rms_acc': REAL_EXTRA_ACC.tolist(), 'simulated_extra_rms_acc': sim_acc.tolist(),
+           'note': 'people only do as much extra accelerating as real people did; the rest of the '
+                   'observed avoidance came from the human driver'}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / 'reaction_calibration.json').write_text(json.dumps(res, indent=2))
     print(json.dumps({k: v for k, v in res.items() if k in ('A', 'B', 'fit_error')}))

@@ -133,3 +133,30 @@ def wasserstein_norm(a, b):
         return np.nan
     iqr = np.subtract(*np.percentile(b, [75, 25]))
     return float(wasserstein_distance(a, b) / max(iqr, 1e-6))
+
+
+def burden(actual, recorded, t0, t1, thresh=0.2):
+    """How much the robot made people move off their recorded paths (reactive crowds).
+
+    actual: id -> (t, x, y) where people really were (from the bag);
+    recorded: id -> (t, x, y) their recorded paths, same ids.
+    Returns person-seconds displaced by more than `thresh`, the integral of the
+    displacement over time and people (m*s), and the mean peak displacement of the
+    people who were displaced at all (> 5 cm).
+    """
+    secs, integral, peaks = 0.0, 0.0, []
+    for k, (ta, xa, ya) in actual.items():
+        if k not in recorded:
+            continue
+        tr, xr, yr = recorded[k]
+        m = (ta >= max(t0, tr[0])) & (ta <= min(t1, tr[-1]))
+        if m.sum() < 2:
+            continue
+        dev = np.hypot(xa[m] - np.interp(ta[m], tr, xr), ya[m] - np.interp(ta[m], tr, yr))
+        dt = np.diff(ta[m], prepend=ta[m][0])
+        secs += float(dt[dev > thresh].sum())
+        integral += float((dev * dt).sum())
+        if dev.max() > 0.05:
+            peaks.append(float(dev.max()))
+    return {'people_displaced_s': secs, 'people_displacement_ms': integral,
+            'people_displaced_n': len(peaks), 'mean_peak_displacement_m': float(np.mean(peaks)) if peaks else 0.0}
