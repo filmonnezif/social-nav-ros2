@@ -39,3 +39,5 @@ results/queue_redo.sh
 results/pipeline_night.sh
 results/pipeline_night.log
 results/queue_learned.sh
+results/queue_learned2.sh
+results/run_learned2.sh

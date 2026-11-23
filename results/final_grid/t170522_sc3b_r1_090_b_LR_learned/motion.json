@@ -1,16 +1,16 @@
 {
-  "duration_s": 115.69999999999959,
-  "mean_speed": 0.14145030725376706,
-  "rms_accel": 0.11060298492149293,
-  "rms_jerk": 0.46707922063028273,
-  "heading_change_per_m": 1.2160608749640291,
-  "stop_starts_per_min": 7.778738115816795,
-  "min_ttc_s": 0.04832149673739449,
+  "duration_s": 105.19999999999962,
+  "mean_speed": 0.15530472148957497,
+  "rms_accel": 0.13714511555439776,
+  "rms_jerk": 0.5177512903722646,
+  "heading_change_per_m": 1.2200550718783367,
+  "stop_starts_per_min": 10.266159695817528,
+  "min_ttc_s": 0.0008849337104438253,
   "time_ttc_under_2s": 13.8,
-  "mean_robot_approach_close": 0.0049426112921868316,
-  "min_distance": 0.07792962168629529,
-  "people_displaced_s": 15.899999999999995,
-  "people_displacement_ms": 13.621731976960087,
+  "mean_robot_approach_close": -0.0031392600533062262,
+  "min_distance": 0.05160668836677927,
+  "people_displaced_s": 15.002999999999979,
+  "people_displacement_ms": 13.59107438742411,
   "people_displaced_n": 7,
-  "mean_peak_displacement_m": 0.23018257055464036
+  "mean_peak_displacement_m": 0.22349128563775547
 }

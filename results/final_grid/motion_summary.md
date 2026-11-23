@@ -7,7 +7,7 @@
 | Nav2 + CV prediction                           |     32 |        0.327 |      0.856 |                  0.787 |                 5.033 |               6.909 |                      -0.021 |                     0.784 |
 | Nav2 + LSTM prediction                         |     32 |        0.32  |      0.885 |                  0.822 |                 5.277 |               6.334 |                      -0.007 |                     0.752 |
 | Social (LSTM + yielding + human-fitted limits) |     32 |        0.277 |      0.774 |                  0.854 |                 6.858 |               9.156 |                      -0.003 |                     0.786 |
-| Learned driver (LSTM + cloned human speed)     |     32 |        0.158 |      0.467 |                  1.206 |                 5.612 |              12.203 |                      -0.016 |                     0.758 |
+| Learned driver (LSTM + cloned human speed)     |     32 |        0.168 |      0.533 |                  1.255 |                 6.567 |              11.431 |                      -0.024 |                     0.746 |
 | Human driver                                   |     10 |        0.238 |      1.229 |                  1.095 |                 3.151 |               1.974 |                      -0.025 |                     0     |
 
 Burden on people (reactive crowds only): person-seconds pushed > 0.2 m off their path, displacement integral (m*s), mean peak displacement (m):
@@ -19,7 +19,7 @@ Burden on people (reactive crowds only): person-seconds pushed > 0.2 m off their
 | Nav2 + CV prediction                           |                 9.7  |                     8.12 |                       0.24 |
 | Nav2 + LSTM prediction                         |                 9.28 |                     8.08 |                       0.24 |
 | Social (LSTM + yielding + human-fitted limits) |                12.49 |                    10.17 |                       0.26 |
-| Learned driver (LSTM + cloned human speed)     |                17.64 |                    14.72 |                       0.28 |
+| Learned driver (LSTM + cloned human speed)     |                16.82 |                    14.3  |                       0.28 |
 | Human driver                                   |               nan    |                   nan    |                     nan    |
 
 Human-likeness distance per feature (Wasserstein / human IQR; lower is more human-like):
@@ -31,7 +31,7 @@ Human-likeness distance per feature (Wasserstein / human IQR; lower is more huma
 | Nav2 + CV prediction                           |      0.49 |      1.49 |     0.98 |          0.47 |                     0.09 |               1.18 |
 | Nav2 + LSTM prediction                         |      0.44 |      1.43 |     0.98 |          0.44 |                     0.12 |               1.09 |
 | Social (LSTM + yielding + human-fitted limits) |      0.26 |      1.59 |     0.93 |          0.43 |                     0.27 |               1.23 |
-| Learned driver (LSTM + cloned human speed)     |      0.49 |      1.09 |     0.87 |          0.55 |                     0.32 |               1.22 |
+| Learned driver (LSTM + cloned human speed)     |      0.45 |      1.06 |     0.92 |          0.56 |                     0.29 |               1.2  |
 
 ## Nav2 blind to people (bulldozer) vs Nav2 (paired over 32 scene/direction pairs)
 
@@ -71,9 +71,9 @@ Human-likeness distance per feature (Wasserstein / human IQR; lower is more huma
 
 ## Learned driver (LSTM + cloned human speed) vs Nav2 (paired over 32 scene/direction pairs)
 
-- rms_jerk: -0.318 (-41%), 95% CI [-0.444, -0.224]
-- heading_change_per_m: +0.508 (+73%), 95% CI [+0.429, +0.585]
-- stop_starts_per_min: +0.770 (+16%), 95% CI [-0.320, +1.804]
-- time_ttc_under_2s: +6.228 (+104%), 95% CI [+4.541, +7.853]
-- people_displaced_s: +8.153 (+86%), 95% CI [+6.046, +10.181]
-- people_displacement_ms: +6.987 (+90%), 95% CI [+5.955, +7.992]
+- rms_jerk: -0.253 (-32%), 95% CI [-0.381, -0.150]
+- heading_change_per_m: +0.558 (+80%), 95% CI [+0.476, +0.643]
+- stop_starts_per_min: +1.725 (+36%), 95% CI [+0.637, +2.803]
+- time_ttc_under_2s: +5.456 (+91%), 95% CI [+3.828, +7.059]
+- people_displaced_s: +7.332 (+77%), 95% CI [+5.218, +9.367]
+- people_displacement_ms: +6.571 (+85%), 95% CI [+5.266, +7.739]

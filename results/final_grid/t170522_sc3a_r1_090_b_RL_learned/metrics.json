@@ -2,13 +2,13 @@
   "goals_reached": 1,
   "goals_total": 1,
   "time_to_goals_s": [
-    82.76
+    81.08
   ],
-  "path_length_m": 16.88,
-  "min_distance_to_person_m": 0.054,
-  "time_within_personal_space_s": 3.42,
-  "time_within_1m_s": 10.8,
-  "robot_closing_within_0.5m_s": 1.48,
-  "robot_closing_within_1m_s": 4.64,
+  "path_length_m": 16.29,
+  "min_distance_to_person_m": 0.079,
+  "time_within_personal_space_s": 2.88,
+  "time_within_1m_s": 11.88,
+  "robot_closing_within_0.5m_s": 1.22,
+  "robot_closing_within_1m_s": 5.26,
   "personal_space_threshold_m": 0.5
 }

@@ -6,10 +6,10 @@
         -1.0,
         3.14159
       ],
-      "result": "SUCCEEDED",
+      "result": "FAILED",
       "start_s": 15.0,
-      "duration_s": 91.45
+      "duration_s": 12.05
     }
   ],
-  "end_s": 106.45
+  "end_s": 27.05
 }

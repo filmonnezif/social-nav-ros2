@@ -95,11 +95,12 @@ DARKO-sized robot (0.90 × 0.75 m, the dataset robot's footprint) among replayed
 | + constant-velocity prediction | 100% | 48 s | 1.56 s | 9.7 | 11.6 | 0.78 |
 | + LSTM prediction | 100% | 50 s | 1.57 s | 9.3 | 10.8 | **0.75** |
 | Social (LSTM + yielding rule + human-fitted limits) | 97% | 58 s | 2.39 s | 12.5 | 11.9 | 0.79 |
-| Learned driver (LSTM + speed cloned from the human driver) | 78% | 97 s | 3.16 s | 17.6 | **10.3** | 0.76 |
+| Learned driver v1 (own velocity as input) | 78% | 97 s | 3.16 s | 17.6 | 10.3 | 0.76 |
+| Learned driver v2 (no own velocity) | 88% | 94 s | 2.76 s | 16.8 | 11.4 | **0.75** |
 
 - Learned prediction lowers the rate at which the robot pushes people off their paths (about 15% per minute versus Nav2) and makes its motion the most human-like, but it is slower, so total burden is unchanged.
 - Behaviours that slow the robot down spend longer among people, who walk about four times faster than the robot, and add total burden.
-- The learned driver fails in closed loop (0.16 m/s, 22% timeouts): with its own past velocity as an input it copies itself and stays slow once slowed, the known "copycat" problem of behaviour cloning, even though offline it predicted the human driver's velocity 8% better than keeping the current velocity.
+- The learned driver fails in closed loop. v1 (0.16 m/s, 22% timeouts) had its own past velocity as an input and copied itself, the known "copycat" problem of behaviour cloning, even though offline it predicted the human driver's velocity 8% better than keeping the current velocity. v2 drops that input and fails less (12%), but still drives at 0.17 m/s: its subgoal input, the driver's position 4 s later, also encodes the driver's speed, so at run time a fixed 1 m subgoal tells it how fast to go. The next version should give it a direction only.
 - The blind control is worst per minute but only slightly worse than Nav2: at this crowd density Nav2's reactive avoidance changes little. Halving the people's reaction strength gives the same ranking ([`final_grid_half`](results/final_grid_half/summary.md)).
 
 ![Motion distributions versus the human driver](docs/media/final_motion.png)

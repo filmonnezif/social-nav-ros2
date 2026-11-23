@@ -7,7 +7,7 @@
 | Nav2 + CV prediction                           |     32 |      100    |                         47.82 |                0.25 |                        1.56 |                      7.18 |                                0.69 |                              3.23 |
 | Nav2 + LSTM prediction                         |     32 |      100    |                         49.6  |                0.22 |                        1.57 |                      7.04 |                                0.71 |                              3.27 |
 | Social (LSTM + yielding + human-fitted limits) |     32 |       96.88 |                         58.25 |                0.18 |                        2.39 |                      9.11 |                                1.08 |                              4.22 |
-| Learned driver (LSTM + cloned human speed)     |     32 |       78.12 |                         97.49 |                0.16 |                        3.16 |                     12.91 |                                1.42 |                              5.95 |
+| Learned driver (LSTM + cloned human speed)     |     32 |       87.5  |                         94.09 |                0.17 |                        2.76 |                     12.46 |                                1.21 |                              5.66 |
 
 ## Nav2 blind to people (bulldozer) vs Nav2
 
@@ -47,9 +47,9 @@
 
 ## Learned driver (LSTM + cloned human speed) vs Nav2
 
-- time within 0.5 m: +116% change in the mean (paired difference +1.70 s, 95% CI [+1.19, +2.22])
-- minimum distance: -0.061 m (95% CI [-0.118, -0.004])
-- time to goal (runs both completed): +130%
-- robot-caused time within 1 m: +80% (paired difference +2.64 s, 95% CI [+1.96, +3.33])
-- failures: 7 new, 0 fixed
+- time within 0.5 m: +88% change in the mean (paired difference +1.29 s, 95% CI [+0.85, +1.74])
+- minimum distance: -0.051 m (95% CI [-0.115, +0.015])
+- time to goal (runs both completed): +114%
+- robot-caused time within 1 m: +71% (paired difference +2.35 s, 95% CI [+1.64, +3.02])
+- failures: 4 new, 0 fixed
 - **H3 NOT SUPPORTED** (needs: min distance up, time within 0.5 m down >= 30%, time to goal <= +20%, no extra failures)

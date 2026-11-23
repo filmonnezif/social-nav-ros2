@@ -6,10 +6,10 @@
         1.0,
         0.0
       ],
-      "result": "CANCELED",
+      "result": "SUCCEEDED",
       "start_s": 15.0,
-      "duration_s": 120.06
+      "duration_s": 86.87
     }
   ],
-  "end_s": 135.06
+  "end_s": 101.87
 }
