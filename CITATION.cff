@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this code or results, please cite it as below."
+title: "Social Navigation with Learned Pedestrian Prediction (ROS 2 + Nav2)"
+authors:
+  - family-names: "Abamecha"
+    given-names: "Filmon Nezif"
+    affiliation: "Higher Colleges of Technology, United Arab Emirates"
+repository-code: "https://github.com/filmonnezif/social-nav-ros2"
+license: MIT
+date-released: "2026-11-23"
+keywords: [social navigation, ROS 2, Nav2, trajectory prediction, THÖR-MAGNI, behaviour cloning]
+preferred-citation:
+  type: conference-paper
+  title: "Learned Pedestrian Prediction for Nav2 in Data-Calibrated Reactive Crowds, Measured against a Human-Driven Robot"
+  authors:
+    - family-names: "Abamecha"
+      given-names: "Filmon Nezif"
+  year: 2026

@@ -41,3 +41,13 @@ results/pipeline_night.log
 results/queue_learned.sh
 results/queue_learned2.sh
 results/run_learned2.sh
+
+# LaTeX build output
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
