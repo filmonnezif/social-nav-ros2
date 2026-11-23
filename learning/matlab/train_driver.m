@@ -11,7 +11,10 @@
 %   GOAL-PACE   head for the subgoal at the driver's median speed (0.27 m/s)
 %   BC-blind    LSTM on own motion + subgoal only (no people)
 %   BC-social   LSTM on own motion + subgoal + people
-%   BC-nocopy   LSTM on subgoal + people only, no own velocity  <- the learned driver
+%   BC-nocopy   LSTM on subgoal + people only, no own velocity
+%   BC-people   LSTM on people only (frame still points at the subgoal)  <- the learned driver
+%               (the subgoal's distance is the driver's 4 s progress, which also
+%               gives away its speed; without it, speed has to come from the people)
 %               (own past velocity lets the network copy itself, which makes it
 %               stay slow once slowed in closed loop: the "copycat" problem)
 %
@@ -42,11 +45,12 @@ goalpace = 0.27 * g ./ max(sqrt(sum(g.^2, 2)), 1e-6);
 P.KEEP = keep; P.GOAL_PACE = goalpace;
 
 %% Learned drivers
-variants = ["BC-blind", "BC-social", "BC-nocopy"];
+variants = ["BC-blind", "BC-social", "BC-nocopy", "BC-people"];
 for v = variants
     cols = 1:4;
     if v == "BC-social", cols = 1:34; end
     if v == "BC-nocopy", cols = 3:34; end
+    if v == "BC-people", cols = 5:34; end
     Xtr = toCells(D.train_X(:, :, cols)); Xva = toCells(D.val_X(:, :, cols)); Xte = toCells(D.test_X(:, :, cols));
     preds = zeros([size(Yt) numel(SEEDS)]);
     for k = 1:numel(SEEDS)

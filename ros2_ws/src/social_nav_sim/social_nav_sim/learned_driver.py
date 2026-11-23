@@ -5,8 +5,9 @@ Every 0.4 s it builds the same input as learning/data/make_bc_dataset.py: the la
 about 1 m ahead, matching the driver's typical 4 s progress), and the 6 nearest
 people's positions and velocities, all in a frame pointing at the subgoal. The
 MATLAB-trained LSTM returns the velocity the human driver would have chosen (the
-default BC-nocopy model is not given the robot's own velocity, so it cannot simply
-copy itself); its
+default BC-people model sees only the people, in a frame pointing at the subgoal:
+neither its own velocity nor the subgoal distance, both of which let earlier
+versions read the pace off their inputs instead of the people); its
 magnitude becomes Nav2's speed limit (/speed_limit, m/s), so the learned policy
 decides when to slow, wait and go while Nav2 + the LSTM prediction layer steer.
 The limit can fall immediately but rises at most `rise_rate` per second.
@@ -40,12 +41,14 @@ class LearnedDriver(Node):
         self.declare_parameter('v_min', 0.05)
         self.declare_parameter('v_max', 0.6)
         self.declare_parameter('rise_rate', 0.25)
-        self.declare_parameter('use_own_velocity', False)   # False for the BC-nocopy model
+        # inputs the model was trained on: 0 = all (BC-social), 2 = no own velocity (BC-nocopy),
+        # 4 = people only (BC-people)
+        self.declare_parameter('first_feature', 4)
         self.net = LSTMPredictor(self.get_parameter('weights').value)
         self.subgoal_dist = self.get_parameter('subgoal_dist').value
         self.v_min, self.v_max = self.get_parameter('v_min').value, self.get_parameter('v_max').value
         self.rise_rate = self.get_parameter('rise_rate').value
-        self.use_own = self.get_parameter('use_own_velocity').value
+        self.first_feature = self.get_parameter('first_feature').value
         self.tf = Buffer()
         self.tf_listener = TransformListener(self.tf, self)
         self.plan = None
@@ -110,8 +113,7 @@ class LearnedDriver(Node):
             ppl[HIST - n:, j, 2:4] = rot(np.diff(h[-n - 1:], axis=0) / DT, c, s)
             ppl[HIST - n:, j, 4] = 1
         x = np.concatenate([own, sub, np.transpose(ppl, (0, 2, 1)).reshape(HIST, -1)], 1)
-        if not self.use_own:
-            x = x[:, 2:]
+        x = x[:, self.first_feature:]
         v = self.net.forward(x)[0]
         self.target = float(np.clip(np.hypot(*v), self.v_min, self.v_max))
 

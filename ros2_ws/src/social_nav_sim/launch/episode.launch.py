@@ -95,7 +95,7 @@ def generate_launch_description():
         DeclareLaunchArgument('scene', default_value='thor_sc3'),
         DeclareLaunchArgument('out_dir', default_value='/ws/results/latest'),
         DeclareLaunchArgument('mode', default_value='none', description='none | blind | cv | lstm | social | learned'),
-        DeclareLaunchArgument('driver_weights', default_value=os.path.join(pkg, 'models', 'weights_BC_nocopy.mat')),
+        DeclareLaunchArgument('driver_weights', default_value=os.path.join(pkg, 'models', 'weights_BC_people.mat')),
         DeclareLaunchArgument('body', default_value='tb3', description='tb3 | darko (dataset robot size)'),
         DeclareLaunchArgument('reaction', default_value='',
                               description='reaction model json: people react to the robot (simple-body scenes)'),
