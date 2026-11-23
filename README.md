@@ -8,7 +8,7 @@ A mobile robot that learns from real people how to move through a crowd. A traje
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
-> **Status:** in progress. Results and demo videos will appear below as runs complete.
+> **Status:** experiments complete for prediction, the reactive crowd and five navigation set-ups; next: fixing the learned driver's copycat input.
 
 ## Demo
 
@@ -83,6 +83,28 @@ Trained in MATLAB Online ([`train_predictor.m`](learning/matlab/train_predictor.
 ![Prediction error by model](docs/media/predictor_ade_fde.png)
 
 The robot-aware model drives the navigation experiment (H3). [`predictor_numpy.py`](learning/predictor_numpy.py) runs the exported weights without MATLAB and reproduces the MATLAB test metrics.
+
+### Navigation in a reactive crowd (final experiment)
+
+DARKO-sized robot (0.90 × 0.75 m, the dataset robot's footprint) among replayed THÖR-MAGNI people who react to it with a model calibrated to the data (they keep their distance about as much as real participants did, and do no more extra accelerating than they did). 16 scenes from the held-out test day × 2 crossing directions = 32 paired runs per set-up. Burden = person-seconds that people were pushed more than 0.2 m off their recorded path. Human-likeness = mean Wasserstein distance between the robot's motion distributions (speed, acceleration, jerk, turn rate, approach speed, passing clearance) and those of the human-driven robot in THÖR-MAGNI, in units of the human's interquartile range.
+
+| Set-up | Reached goal | Time to goal | Time within 0.5 m | Burden (person-s) | Burden per minute | Human-likeness distance |
+| --- | --- | --- | --- | --- | --- | --- |
+| Nav2 | 100% | 43 s | 1.46 s | 9.5 | 12.7 | 0.81 |
+| Nav2 blind to people (control) | 100% | 38 s | 1.52 s | 8.4 | 13.0 | 0.80 |
+| + constant-velocity prediction | 100% | 48 s | 1.56 s | 9.7 | 11.6 | 0.78 |
+| + LSTM prediction | 100% | 50 s | 1.57 s | 9.3 | 10.8 | **0.75** |
+| Social (LSTM + yielding rule + human-fitted limits) | 97% | 58 s | 2.39 s | 12.5 | 11.9 | 0.79 |
+| Learned driver (LSTM + speed cloned from the human driver) | 78% | 97 s | 3.16 s | 17.6 | **10.3** | 0.76 |
+
+- Learned prediction lowers the rate at which the robot pushes people off their paths (about 15% per minute versus Nav2) and makes its motion the most human-like, but it is slower, so total burden is unchanged.
+- Behaviours that slow the robot down spend longer among people, who walk about four times faster than the robot, and add total burden.
+- The learned driver fails in closed loop (0.16 m/s, 22% timeouts): with its own past velocity as an input it copies itself and stays slow once slowed, the known "copycat" problem of behaviour cloning, even though offline it predicted the human driver's velocity 8% better than keeping the current velocity.
+- The blind control is worst per minute but only slightly worse than Nav2: at this crowd density Nav2's reactive avoidance changes little. Halving the people's reaction strength gives the same ranking ([`final_grid_half`](results/final_grid_half/summary.md)).
+
+![Motion distributions versus the human driver](docs/media/final_motion.png)
+
+Details: [`results/final_grid/summary.md`](results/final_grid/summary.md), [`motion_summary.md`](results/final_grid/motion_summary.md); reaction model: [`results/reaction`](results/reaction); learned driver: [`results/driver`](results/driver).
 
 ## Data
 

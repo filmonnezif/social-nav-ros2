@@ -1,0 +1,15 @@
+{
+  "goals": [
+    {
+      "goal": [
+        -7.0,
+        -1.0,
+        3.14159
+      ],
+      "result": "SUCCEEDED",
+      "start_s": 15.0,
+      "duration_s": 63.59
+    }
+  ],
+  "end_s": 78.59
+}
