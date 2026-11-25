@@ -1,0 +1,12 @@
+# Yield governor profile A: first draft (v_min crawl, wide approach cap)
+yield_governor:
+  ros__parameters:
+    v_max: 0.47
+    v_min: 0.08
+    conflict_dist: 1.0
+    t_safe: 1.2
+    t_free: 4.0
+    approach_cap: 0.27
+    approach_radius: 1.5
+    approach_cone_deg: 90.0
+    rise_rate: 0.15

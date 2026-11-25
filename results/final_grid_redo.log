@@ -1,0 +1,4 @@
+skip t170522_sc3a_r1_130_b (tracking jump in the replay)
+skip t170522_sc3a_r1_170_b (tracking jump in the replay)
+skip t170522_sc3b_r1_130_b (tracking jump in the replay)
+skip t170522_sc3b_r1_170_b (tracking jump in the replay)

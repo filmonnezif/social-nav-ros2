@@ -1,0 +1,16 @@
+{
+  "duration_s": 94.69999999999966,
+  "mean_speed": 0.1709880805446917,
+  "rms_accel": 0.13154488562772687,
+  "rms_jerk": 0.5378806141616436,
+  "heading_change_per_m": 1.0920162241734668,
+  "stop_starts_per_min": 6.969376979936667,
+  "min_ttc_s": 0.02688563832400374,
+  "time_ttc_under_2s": 8.0,
+  "mean_robot_approach_close": -0.02409939158370442,
+  "min_distance": 0.28041454277022615,
+  "people_displaced_s": 11.250000000000007,
+  "people_displacement_ms": 12.246464365690224,
+  "people_displaced_n": 7,
+  "mean_peak_displacement_m": 0.2424783493807047
+}

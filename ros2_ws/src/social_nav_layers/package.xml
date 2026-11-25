@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>social_nav_layers</name>
+  <version>0.1.0</version>
+  <description>Nav2 costmap layer that marks where people are predicted to walk.</description>
+  <maintainer email="139163041+filmonnezif@users.noreply.github.com">Filmon Nezif</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>pluginlib</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

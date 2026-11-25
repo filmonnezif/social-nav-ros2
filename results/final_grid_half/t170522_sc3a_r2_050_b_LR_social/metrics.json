@@ -1,0 +1,14 @@
+{
+  "goals_reached": 0,
+  "goals_total": 1,
+  "time_to_goals_s": [
+    113.62
+  ],
+  "path_length_m": 27.89,
+  "min_distance_to_person_m": 0.066,
+  "time_within_personal_space_s": 6.55,
+  "time_within_1m_s": 17.71,
+  "robot_closing_within_0.5m_s": 3.02,
+  "robot_closing_within_1m_s": 8.57,
+  "personal_space_threshold_m": 0.5
+}

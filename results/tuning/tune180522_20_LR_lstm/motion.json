@@ -1,0 +1,12 @@
+{
+  "duration_s": 60.99999999999979,
+  "mean_speed": 0.27567130804662526,
+  "rms_accel": 0.2318482979264324,
+  "rms_jerk": 0.8521582487187973,
+  "heading_change_per_m": 0.9808510952219859,
+  "stop_starts_per_min": 8.852459016393475,
+  "min_ttc_s": 0.01394011367430959,
+  "time_ttc_under_2s": 10.4,
+  "mean_robot_approach_close": -0.03809966796362007,
+  "min_distance": 0.04078262969024762
+}
